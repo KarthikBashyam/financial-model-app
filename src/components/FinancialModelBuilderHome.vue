@@ -54,7 +54,7 @@ export default {
   },
   methods: {
     fetchStocks() {
-      fetch('http://localhost:8080/api/companies')
+      fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies')
         .then(response => response.json())
         .then(data => {
           this.stocks = data;
