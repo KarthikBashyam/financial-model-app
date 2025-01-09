@@ -41,15 +41,7 @@ export default {
   },
   methods: {
     fetchStocks() {
-      // fetch('http://localhost:8080/api/companies')
-      fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies', {
-        method: 'GET',
-        mode: 'cors', // explicitly state CORS mode
-        headers: {
-          'Content-Type': 'application/json', // specify content type
-          'Referrer-Policy': 'strict-origin-when-cross-origin', // explicitly set the referrer policy
-        },
-      })
+      fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies')
         .then(response => response.json())
         .then(data => {
           this.stocks = data;
