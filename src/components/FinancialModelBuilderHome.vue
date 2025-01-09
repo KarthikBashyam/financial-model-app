@@ -3,19 +3,10 @@
     <div class="white-card">
       <h1>Let's Build a Financial Model.</h1>
       <div class="search-container">
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="Choose a company to build a model for"
-          @input="filterCompanies"
-        />
+        <input type="text" v-model="searchQuery" placeholder="Choose a company to build a model for"
+          @input="filterCompanies" />
         <div v-if="showDropdown && filteredStocks.length" class="dropdown">
-          <div
-            v-for="stock in filteredStocks"
-            :key="stock.symbol"
-            class="dropdown-item"
-            @click="selectStock(stock)"
-          >
+          <div v-for="stock in filteredStocks" :key="stock.symbol" class="dropdown-item" @click="selectStock(stock)">
             <div class="company-name">{{ stock.companyName }}</div>
             <div class="company-info">{{ stock.exchangeName }}: {{ stock.symbol }}</div>
           </div>
@@ -23,11 +14,7 @@
       </div>
 
       <div class="button-container">
-        <button
-          class="continue-button"
-          :disabled="!selectedStock"
-          @click="onContinue"
-        >
+        <button class="continue-button" :disabled="!selectedStock" @click="onContinue">
           Continue
         </button>
       </div>
@@ -54,8 +41,15 @@ export default {
   },
   methods: {
     fetchStocks() {
-     // fetch('http://localhost:8080/api/companies')
-     fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies')
+      // fetch('http://localhost:8080/api/companies')
+      fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies', {
+        method: 'GET',
+        mode: 'cors', // explicitly state CORS mode
+        headers: {
+          'Content-Type': 'application/json', // specify content type
+          'Referrer-Policy': 'strict-origin-when-cross-origin', // explicitly set the referrer policy
+        },
+      })
         .then(response => response.json())
         .then(data => {
           this.stocks = data;
