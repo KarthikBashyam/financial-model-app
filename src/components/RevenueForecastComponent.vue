@@ -3,7 +3,7 @@
 
     <div class="table-container">
       <div class="header">
-        <h1>{{ companyHeader }}'s Historical Revenue and Growth (%)</h1>
+        <h4>{{ companyHeader }}'s Historical Revenue and Growth (%)</h4>
         <div class="currency-selector">
           <label for="currency">Currency:</label>
           <select v-model="selectedCurrency" id="currency">
@@ -13,8 +13,8 @@
         </div>
       </div>
       <div class="revenue-table">
-        <table>
-          <thead>
+        <table >
+          <thead class="bg-body">
             <tr>
               <th>Year</th>
               <th v-for="year in historicalData.years" :key="year">{{ year }}</th>
@@ -44,94 +44,139 @@
     <div class="table-container">
       <div class="forecast-assumptions">
         <div class="header">
-          <h1>Input Your Assumptions for Revenue Growth</h1>
+          <h4>Input Your Assumptions for Revenue Growth</h4>
         </div>
-        <!--<div class="forecast-duration">
-          <label>Forecast Duration</label>
-          <div class="forecast-duration-input">
-            <input type="number" v-model="forecastDuration" min="1" max="10" />
-            <span class="years-label">Years</span>
-          </div>
-        </div>-->
+
 
         <div class="growth-type-container">
           <div class="growth-type">
-            <label>Type of Growth</label>
+            <label><b>Type of Growth</b></label>
             <div class="growth-buttons">
               <button :class="{ active: selectedGrowthType === 'constant' }" @click="changeGrowthType('constant')"
-                class="growth-type-button">Constant</button>
+                class="btn btn-secondary btn-radios">Constant</button>
               <button :class="{ active: selectedGrowthType === 'gradient' }" @click="changeGrowthType('gradient')"
-                class="growth-type-button">Gradient</button>
+                class="btn btn-secondary btn-radio">Gradient</button>
               <button :class="{ active: selectedGrowthType === 'staged' }" @click="changeGrowthType('staged')"
-                class="growth-type-button">Staged</button>
+                class="btn btn-secondary btn-radio">Staged</button>
             </div>
+
             <!-- Constant Growth -->
-            <div v-if="selectedGrowthType === 'constant'" class="growth-input child-container">
-              <!-- Input for constant growth -->
-              <label>Input Growth Rate</label>
-              <input type="number" v-model="inputGrowthRate" min="0" max="100" class="growth-rate-input" /> %
+            <div v-if="selectedGrowthType === 'constant'" class="form-row mt-20" id="constantRow"
+              style="display: flex;">
+              <div class="form-floating col-md-3">
+                <input type="text" v-model="inputGrowthRate" min="0" max="100" class="form-control flatAllow" />
+                <label for="grownthRate">Input Growth Rate</label>
+                <span class="yRateTag">%</span>
+                <div class="invalid-feedback growthRateErr" style="display: none;"></div>
+              </div>
             </div>
             <!-- Gradient -->
-            <div v-if="selectedGrowthType === 'gradient'" class="gradient-growth-input">
-              <p>From FY {{ gradientStartYear }} - {{ gradientStartYear + forecastDuration }}</p>
-              <div class="input-group">
-                <div class="year-input">
-                  <label>{{ gradientStartYear }}e</label>
-                  <div class="input-container">
-                    <input type="number" v-model="gradientStart" />
+            <div v-if="selectedGrowthType === 'gradient'">
+              <div class="row mt-20 g-4">
+                <div class="col-md-3">
+                  <div class="form-floating">
+                    <input type="text" id="startYearRate" name="startYearRate" v-model="gradientStart"
+                      class="form-control floatAllow" value="16">
+                    <label for="startYearRate">Beginning Year Rate</label>
+                    <span class="yRateTag">%</span>
+                    <span class="form-span">Year: 2025</span>
+                    <div class="invalid-feedback startYearRateErr"></div>
                   </div>
-                  %
                 </div>
-                <div class="year-input">
-                  <label>{{ gradientStartYear + forecastDuration }}e</label>
-                  <div class="input-container">
-                    <input type="number" v-model="gradientEnd" />
+                <div class="col-md-3">
+                  <div class="form-floating">
+                    <input type="text" id="terminalYearRate" name="terminalYearRate" class="form-control floatAllow"
+                      value="8" v-model="gradientEnd">
+                    <label for="terminalYearRate">Terminal Year Rate</label>
+                    <span class="yRateTag">%</span>
+                    <span class="form-span">Year: 2034</span>
+                    <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
-                  %
                 </div>
               </div>
+
+              <div class="form-row text-start mt-20"><strong>Mode of Forecast</strong></div>
               <div class="forecast-mode">
-                <label>Mode of Forecast</label>
                 <div class="forecast-buttons">
                   <button :class="{ active: forecastMode === 'linear' }"
                     @click="forecastMode = 'linear'">Linear</button>
                   <button :class="{ active: forecastMode === 'exponential' }"
                     @click="forecastMode = 'exponential'">Exponential</button>
                 </div>
-
               </div>
             </div>
             <!-- Staged Growth-->
             <div v-if="selectedGrowthType === 'staged'" class="staged-growth-input">
-              <label>Number of Growth Stages</label>
-              <input type="number" v-model="numStages" min="1" @input="updateStages" /> Stages
-              <div class="stage-container">
-                <table class="staged-table">
-                  <thead>
-                    <tr>
-                      <th>Stage</th>
-                      <th>Growth Rate (%)</th>
-                      <th>Duration (Years)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(stage, index) in stages" :key="index" class="stage-">
-                      <td>{{ index + 1 }}</td>
-                      <td>
-                        <div class="input-container">
-                          <input type="number" v-model="stage.rate" />
-                        </div>
-                      </td>
-                      <td>
-                        <div class="input-container">
-                          <input type="number" v-model="stage.duration" />
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="row" id="stagedRow" style="display: flex;">
+                <div class="form-row">
+                  <div class="form-floating col-md-4">
+                    <select id="numStages" name="numStages" class="form-select" v-model="numStages"
+                      @change="updateStages">
+                      <option value="">Select Stages</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                      <option value="8">8</option>
+                      <option value="9">9</option>
+                      <option value="10">10</option>
+                    </select>
+                    <label for="modelType">Number of Stages</label>
+                    <div class="invalid-feedback numStagesErr"></div>
+                  </div>
+                </div>
+                <div class="col-md-12" id="stagesTable" style="display: none;"></div>
               </div>
+
+              <!-- Show the stage container only if numStages has a value -->
+              <div v-if="numStages" class="mt-20">
+                <div class="col-md-12" id="stagesTable" style="display: block;">
+                  <div v-for="(stage, index) in stages" :key="index" class="form-row align-items-center"
+                    :id="`stageRow${index}`">
+                    <!-- Stage Label -->
+                    <div class="row col-md-10 form-left">  
+                    <div class="form-group col-md-1">
+                      <label class="stage-label">Stage {{ index + 1 }}:</label>
+                    </div>                    
+                    <!-- Growth Rate Input -->
+                    <div class="form-floating col-md-2">
+                      <input type="text" :id="`stageGrowthRate${index}`" name="stageGrowthRate[]"
+                        class="form-control floatAllow" v-model="stage.rate" />
+                      <label :for="`stageGrowthRate${index}`">Growth Rate</label>
+                      <span class="yRateTag">%</span>
+                      <div class="invalid-feedback" :class="`stageGrowthRate${index}Err`"></div>
+                    </div>
+
+                    <!-- Duration Dropdown -->
+                    <div class="form-floating col-md-2">
+                      <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
+                        v-model="stage.duration">
+                        <option value="">Select years</option>
+                        <option value="1">1 Years</option>
+                        <option value="2">2 Years</option>
+                        <option value="3">3 Years</option>
+                        <option value="4">4 Years</option>
+                        <option value="5">5 Years</option>
+                        <option value="6">6 Years</option>
+                        <option value="7">7 Years</option>
+                        <option value="8">8 Years</option>
+                        <option value="9">9 Years</option>
+                        <option value="10">10 Years</option>
+                      </select>
+                      <label :for="`stageDuration${index}`">Duration</label>
+                      <div class="invalid-feedback" :class="`stageDuration${index}Err`"></div>
+                    </div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+
+
             </div>
+
           </div>
         </div>
         <button class="submit-button" @click="submitInputs">Submit Inputs</button>
@@ -144,7 +189,7 @@
     <!-- Preview Section -->
     <div class="table-container" v-if="forecastItems && forecastItems.length > 0 && !isLoading">
       <div class="forecast-preview">
-        <h2>Preview the Revenue Growth Forecast</h2>
+        <h4>Preview the Revenue Growth Forecast</h4>
         <div class="revenue-table-container">
           <table class="revenue-table">
             <thead>
@@ -181,10 +226,10 @@ export default {
     this.loadUserSelections();
   },
   data() {
-  const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
-  alert(savedForecastDuration)
+    const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
       forecastedData: [],
+      stagesOptions: [1, 2, 3, 4, 5],
       forecastMode: 'linear',
       rawHistoricalData: [],
       isLoading: false,
@@ -194,7 +239,7 @@ export default {
       forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
       inputGrowthRate: 3,
-      numStages: 3,
+      numStages: null,
       historicalData: {
         years: [],
         revenues: [],
@@ -249,7 +294,7 @@ export default {
       }
     },
     fetchHistoricalData() {
-      const url = 'http://localhost:8080/api/lineItems/historical';
+      const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
         companyId: 1, // Replace with the actual companyId dynamically if needed
         lineItemIds: [1, 33] // Replace with the actual lineItemIds if needed
@@ -328,7 +373,8 @@ export default {
           })
         };
         // Send the forecast request to the backend API
-        fetch('http://localhost:8080/api/forecast/single', {
+        const forecastUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/forecast/single`
+        fetch(forecastUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -348,8 +394,6 @@ export default {
           });
       } catch (error) {
         console.error('Error in submitInputs:', error);
-      } finally {
-        this.isLoading = false;
       }
     }
     ,
@@ -365,8 +409,8 @@ export default {
           companyId: 1, // Replace with dynamic value if needed
           lineItemIds: [1, 33], // Replace with selected line item IDs
         };
-
-        const response = await fetch('http://localhost:8080/api/lineItems/forecasted', {
+        const previewUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/forecasted`
+        const response = await fetch(previewUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -414,12 +458,12 @@ export default {
     },
     updateStages() {
       // Adjust the stages array to match the number of stages input by the user
-      if (this.numStages > this.stages.length) {
-        while (this.stages.length < this.numStages) {
-          this.stages.push({ rate: 0, duration: 1 });
-        }
-      } else if (this.numStages < this.stages.length) {
-        this.stages.splice(this.numStages);
+      if (this.numStages && this.numStages > 0) {
+        // Populate the stages array based on the selected number of stages
+        this.stages = Array.from({ length: this.numStages }, () => ({ rate: 0, duration: 0 }));
+      } else {
+        // Clear stages if no valid selection is made
+        this.stages = [];
       }
     },
     goBack() {
@@ -714,24 +758,28 @@ button:disabled {
   /* Vertically align input fields */
 }
 
-.input-container input {
-  width: 50px;
-  /* Adjust width as needed */
-  padding: 5px;
-  text-align: center;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+
 
 .input-group {
   display: flex;
-  justify-content: space-between;
+  justify-content: right;
   /* Distribute space evenly */
   align-items: center;
   /* Vertically center elements */
 }
 
 .year-input {
+  display: flex;
+  align-items: center;
+}
+
+.year-input label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.year-input .input-container {
   display: flex;
   align-items: center;
 }
@@ -806,5 +854,187 @@ button:disabled {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.gradient-growth-input {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  /* Minimal spacing between the inputs */
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.year-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.custom-dropdown {
+  display: block;
+  width: 25%;
+  /* Full width */
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  /* Adjust padding for dropdown size */
+  font-family: Arial, sans-serif;
+  /* Replace with your desired font */
+  font-size: 16px;
+  /* Adjust for readability */
+  font-weight: 400;
+  /* Normal font weight */
+  line-height: 1.5;
+  color: #495057;
+  /* Standard text color */
+  background-color: #fff;
+  /* White background */
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"%3E%3Cpath fill="%23ccc" d="M2 0L0 2h4zm0 5L0 3h4z"/%3E'), none;
+  /* Dropdown arrow */
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  /* Position arrow */
+  background-size: 10px 10px;
+  /* Size arrow */
+  border: 1px solid #ced4da;
+  /* Light gray border */
+  border-radius: 0.25rem;
+  /* Rounded corners */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+  /* Subtle inner shadow */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  /* Smooth transitions */
+  appearance: none;
+  /* Remove default styling for consistent look */
+
+  /* Focus state styling */
+  &:focus {
+    border-color: #80bdff;
+    /* Blue border on focus */
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    /* Glow effect on focus */
+  }
+
+  /* Styles for multiple selection or size attributes */
+  &[multiple],
+  &[size]:not([size="1"]) {
+    padding-right: 0.75rem;
+    /* Adjust padding */
+    background-image: none;
+    /* Remove arrow for multiple selection */
+  }
+}
+
+
+
+
+
+
+
+.year-input label {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+}
+
+.input-container input {
+  width: 150px;
+  padding: 5px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: right;
+}
+
+.input-container span {
+  margin-left: 5px;
+  font-size: 1rem;
+  color: #555;
+}
+
+.year-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.year-input label {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.year-input input {
+
+  width: 150px;
+  padding: 5px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: right;
+  height: 30px;
+}
+
+.growth-type {
+  margin-bottom: 20px;
+}
+
+.growth-type label {
+  display: block;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 10px;
+  /* Add spacing below the label */
+}
+
+.growth-buttons {
+  display: flex;
+  gap: 10px;
+  /* Add spacing between buttons */
+}
+
+.growth-type-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.growth-type-button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.yRateTag {
+  position: absolute;
+  top: 20px;
+  right: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  padding: .375rem .75rem;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+.stage-label {
+	padding-top:12px;
+	font-weight:500;
 }
 </style>
