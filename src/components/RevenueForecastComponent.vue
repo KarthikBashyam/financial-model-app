@@ -31,8 +31,8 @@
             <!-- Revenue Growth Row -->
             <tr>
               <td>Revenue Growth</td>
-              <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
-                {{ growth ? growth + '%' : 'N/A' }}
+              <td v-for="(revenue, index) in historicalData.revenues" :key="'growth-' + index">
+                {{ index > 0 ? calculateGrowth(historicalData.revenues[index - 1], revenue) + '%' : 'N/A' }}
               </td>
             </tr>
           </tbody>
@@ -79,7 +79,7 @@
                       class="form-control floatAllow" value="16">
                     <label for="startYearRate">Beginning Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: 2025</span>
+                    <span class="form-span">Year: {{nextYear}}</span>
                     <div class="invalid-feedback startYearRateErr"></div>
                   </div>
                 </div>
@@ -89,7 +89,7 @@
                       value="8" v-model="gradientEnd">
                     <label for="terminalYearRate">Terminal Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: 2034</span>
+                    <span class="form-span">Year: {{nextYear + forecastDuration - 1}}</span>
                     <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
                 </div>
@@ -228,6 +228,7 @@ export default {
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
+      nextYear: new Date().getFullYear() + 1,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
       forecastMode: 'linear',
@@ -448,6 +449,11 @@ export default {
         style: 'currency',
         currency: this.selectedCurrency
       }).format(value);
+    },
+    calculateGrowth(previousRevenue, currentRevenue) {
+      if (previousRevenue === 0) return 'N/A';
+      const growth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+      return growth.toFixed(2);
     },
     togglePreview() {
       this.isOpen = !this.isOpen;

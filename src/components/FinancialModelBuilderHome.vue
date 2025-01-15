@@ -41,7 +41,8 @@ export default {
   },
   methods: {
     fetchStocks() {
-      fetch('https://piappservice-cwg7evftcpbxfwev.canadacentral-01.azurewebsites.net/api/companies')
+      const url =  `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/companies`;
+      fetch(url)
         .then(response => response.json())
         .then(data => {
           this.stocks = data;
