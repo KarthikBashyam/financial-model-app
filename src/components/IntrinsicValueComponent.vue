@@ -1,12 +1,12 @@
 <template>
-  <div class="intrinsic-value-container">
-    <h1>Intrinsic Value</h1>
+  <div class="intrinsic-value-container">    
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else class="value-card">
       <p>{{ companyName }}'s Intrinsic Value is</p>
       <h2>USD {{ intrinsicValue }} Per Share</h2>
     </div>
     <button v-if="!loading" class="watchlist-button" @click="addToWatchlist">Save to Watch List</button>
+    <button v-if="!loading" class="download-button" @click="downloadExcel">Download Calculations</button>
   </div>
 </template>
 
@@ -14,44 +14,100 @@
 export default {
   data() {
     return {
+      intrinsicValue: '',
+      loading: true,
+      companyId: '', // Add companyId to the data properties
       companyName: "", // Dynamically set from sessionStorage
-      intrinsicValue: null, // Fetched from API
-      loading: true, // Loading state
     };
   },
-  mounted() {
-    // Fetch companyName from sessionStorage
-    const stockInfoString = sessionStorage.getItem("selectedStock");
-    if (stockInfoString) {
-      const stockInfo = JSON.parse(stockInfoString);
-      this.companyName = stockInfo.companyName || "Unknown Company";
-    } else {
-      this.companyName = "Unknown Company";
-    }
+  async mounted() {
+    try {
+      // Fetch companyName from sessionStorage
+      const stockInfoString = sessionStorage.getItem("selectedStock");
+      if (stockInfoString) {
+        const stockInfo = JSON.parse(stockInfoString);
+        this.companyName = stockInfo.companyName || "Unknown Company";
+      } else {
+        this.companyName = "Unknown Company";
+      }
 
-    // Fetch intrinsic value from API
-    this.fetchIntrinsicValue();
+      // Retrieve the stored assumptions from sessionStorage
+      const storedAssumptions = JSON.parse(sessionStorage.getItem('valuationAssumptions'));
+
+      // Retrieve companyId from sessionStorage or another source
+      this.companyId = sessionStorage.getItem('companyId') || '';
+
+      // Create a new object with only the fields present in the DTO
+      const assumptions = {
+        companyId: parseInt(this.companyId),
+        forecastDuration: parseInt(sessionStorage.getItem('forecastDuration')) || 5, // Default to 5 if not set
+        selectedFinalApproach: storedAssumptions.selectedApproach,
+        costOfCapital: parseFloat(storedAssumptions.costOfCapital),
+        terminalGrowthRate: parseFloat(storedAssumptions.terminalGrowthRate),
+        terminalEVEBITDAMultiple: parseFloat(storedAssumptions.terminalEVEBITDAMultiple)
+      };
+
+      // Prepare the request URL and options
+      const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/intrinsic/estimate`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(assumptions)
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const responseData = await response.json();
+      console.log('Intrinsic Value Response:', responseData);
+
+      // Handle the response data as needed
+      this.intrinsicValue = responseData.intrinsicvalue || "N/A";
+    } catch (error) {
+      console.error('Error fetching intrinsic value:', error);
+      this.intrinsicValue = "Error";
+    } finally {
+      this.loading = false;
+    }
   },
   methods: {
-    async fetchIntrinsicValue() {
-      try {
-        const response = await fetch("http://localhost:8080/api/intrinsic/estimate");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        this.intrinsicValue = data.intrinsicvalue || "N/A";
-      } catch (error) {
-        console.error("Error fetching intrinsic value:", error);
-        this.intrinsicValue = "Error";
-      } finally {
-        this.loading = false;
-      }
-    },
     addToWatchlist() {
       alert(`${this.companyName} has been added to your watchlist.`);
     },
-  },
+    async downloadExcel() {
+      try {
+        // Retrieve companyId from sessionStorage or another source
+        const companyId = sessionStorage.getItem('companyId') || '';
+
+        // Prepare the request URL with query parameters
+        const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/intrinsic/download?companyId=${companyId}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const blob = await response.blob();
+        const urlBlob = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = urlBlob;
+        a.download = `${this.companyName}_Intrinsic_Value.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (error) {
+        console.error('Error downloading Excel file:', error);
+      }
+    }
+  }
 };
 </script>
 
@@ -106,7 +162,7 @@ h1 {
   margin: 0;
 }
 
-.watchlist-button {
+.watchlist-button, .download-button {
   background-color: #2d89ef;
   color: white;
   border: none;
@@ -115,9 +171,10 @@ h1 {
   font-size: 1.2rem; /* Larger font size */
   cursor: pointer;
   transition: background-color 0.3s ease;
+  margin-top: 10px; /* Add margin between buttons */
 }
 
-.watchlist-button:hover {
+.watchlist-button:hover, .download-button:hover {
   background-color: #2163c7;
 }
 </style>

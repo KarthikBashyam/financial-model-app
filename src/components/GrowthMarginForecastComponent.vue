@@ -3,7 +3,7 @@
 
     <div class="table-container">
       <div class="header">
-        <h1>{{ companyHeader }}'s Historical Gross Profit and Gross Margin (%)</h1>
+        <h4>{{ companyHeader }}'s Historical Gross Profit and Gross Margin (%)</h4>
         <div class="currency-selector">
           <label for="currency">Currency:</label>
           <select v-model="selectedCurrency" id="currency">
@@ -14,25 +14,25 @@
       </div>
       <div class="revenue-table">
         <table>
-          <thead>
-            <tr>
+          <thead class="bg-body">
+            <tr class="year-row">
               <th>Year</th>
-              <th v-for="year in historicalData.years" :key="year">{{ year }}</th>
+              <th v-for="year in historicalData.years" :key="'year-' + year">{{ year }}</th>
             </tr>
           </thead>
           <tbody>
-            <!-- Revenue Row -->
+            <!-- Gross Profit Row -->
             <tr>
               <td>Gross Profit</td>
               <td v-for="(revenue, index) in historicalData.revenues" :key="'revenue-' + index">
                 {{ formatCurrency(revenue) }}
               </td>
             </tr>
-            <!-- Revenue Growth Row -->
+            <!-- Gross Margin Growth Row -->
             <tr>
               <td>Gross Margin (%)</td>
               <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
-                {{ growth ? growth + '%' : 'N/A' }}
+                {{ growth }}%
               </td>
             </tr>
           </tbody>
@@ -44,94 +44,139 @@
     <div class="table-container">
       <div class="forecast-assumptions">
         <div class="header">
-          <h1>Input Your Assumptions for Gross Margin(%) Forecasts</h1>
+          <h4>Input Your Assumptions for Gross Margin (%) Forecasts</h4>
         </div>
-        <!--<div class="forecast-duration">
-          <label>Forecast Duration</label>
-          <div class="forecast-duration-input">
-            <input type="number" v-model="forecastDuration" min="1" max="10" />
-            <span class="years-label">Years</span>
-          </div>
-        </div> -->
+
 
         <div class="growth-type-container">
           <div class="growth-type">
-            <label>Type of Forecast</label>
+            <label><b>Type of Growth</b></label>
             <div class="growth-buttons">
               <button :class="{ active: selectedGrowthType === 'constant' }" @click="changeGrowthType('constant')"
-                class="growth-type-button">Constant</button>
+                class="btn btn-secondary btn-radios">Constant</button>
               <button :class="{ active: selectedGrowthType === 'gradient' }" @click="changeGrowthType('gradient')"
-                class="growth-type-button">Gradient</button>
+                class="btn btn-secondary btn-radio">Gradient</button>
               <button :class="{ active: selectedGrowthType === 'staged' }" @click="changeGrowthType('staged')"
-                class="growth-type-button">Staged</button>
+                class="btn btn-secondary btn-radio">Staged</button>
             </div>
+
             <!-- Constant Growth -->
-            <div v-if="selectedGrowthType === 'constant'" class="growth-input child-container">
-              <!-- Input for constant growth -->
-              <label>Input Gross Margin</label>
-              <input type="number" v-model="inputGrowthRate" min="0" max="100" class="growth-rate-input" /> %
+            <div v-if="selectedGrowthType === 'constant'" class="form-row mt-20" id="constantRow"
+              style="display: flex;">
+              <div class="form-floating col-md-3">
+                <input type="text" v-model="inputGrowthRate" min="0" max="100" class="form-control flatAllow" />
+                <label for="grownthRate">Input Gross Margin</label>
+                <span class="yRateTag">%</span>
+                <div class="invalid-feedback growthRateErr" style="display: none;"></div>
+              </div>
             </div>
             <!-- Gradient -->
-            <div v-if="selectedGrowthType === 'gradient'" class="gradient-growth-input">
-              <p>From FY {{ gradientStartYear }} - {{ gradientStartYear + forecastDuration }}</p>
-              <div class="input-group">
-                <div class="year-input">
-                  <label>{{ gradientStartYear }}e</label>
-                  <div class="input-container">
-                    <input type="number" v-model="gradientStart" />
+            <div v-if="selectedGrowthType === 'gradient'">
+              <div class="row mt-20 g-4">
+                <div class="col-md-3">
+                  <div class="form-floating">
+                    <input type="text" id="startYearRate" name="startYearRate" v-model="gradientStart"
+                      class="form-control floatAllow" value="16">
+                    <label for="startYearRate">Beginning Year Rate</label>
+                    <span class="yRateTag">%</span>
+                    <span class="form-span">Year: {{ nextYear }}</span>
+                    <div class="invalid-feedback startYearRateErr"></div>
                   </div>
-                  %
                 </div>
-                <div class="year-input">
-                  <label>{{ gradientStartYear + forecastDuration }}e</label>
-                  <div class="input-container">
-                    <input type="number" v-model="gradientEnd" />
+                <div class="col-md-3">
+                  <div class="form-floating">
+                    <input type="text" id="terminalYearRate" name="terminalYearRate" class="form-control floatAllow"
+                      value="8" v-model="gradientEnd">
+                    <label for="terminalYearRate">Terminal Year Rate</label>
+                    <span class="yRateTag">%</span>
+                    <span class="form-span">Year: {{ nextYear + forecastDuration - 1 }}</span>
+                    <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
-                  %
                 </div>
               </div>
+
+              <div class="form-row text-start mt-20"><strong>Mode of Forecast</strong></div>
               <div class="forecast-mode">
-                <label>Mode of Forecast</label>
                 <div class="forecast-buttons">
                   <button :class="{ active: forecastMode === 'linear' }"
                     @click="forecastMode = 'linear'">Linear</button>
                   <button :class="{ active: forecastMode === 'exponential' }"
                     @click="forecastMode = 'exponential'">Exponential</button>
                 </div>
-
               </div>
             </div>
             <!-- Staged Growth-->
             <div v-if="selectedGrowthType === 'staged'" class="staged-growth-input">
-              <label>Number of Growth Stages</label>
-              <input type="number" v-model="numStages" min="1" @input="updateStages" /> Stages
-              <div class="stage-container">
-                <table class="staged-table">
-                  <thead>
-                    <tr>
-                      <th>Stage</th>
-                      <th>Growth Rate (%)</th>
-                      <th>Duration (Years)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(stage, index) in stages" :key="index" class="stage-">
-                      <td>{{ index + 1 }}</td>
-                      <td>
-                        <div class="input-container">
-                          <input type="number" v-model="stage.rate" />
-                        </div>
-                      </td>
-                      <td>
-                        <div class="input-container">
-                          <input type="number" v-model="stage.duration" />
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="row" id="stagedRow" style="display: flex;">
+                <div class="form-row">
+                  <div class="form-floating col-md-4">
+                    <select id="numStages" name="numStages" class="form-select" v-model="numStages"
+                      @change="updateStages">
+                      <option value="">Select Stages</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                      <option value="8">8</option>
+                      <option value="9">9</option>
+                      <option value="10">10</option>
+                    </select>
+                    <label for="modelType">Number of Stages</label>
+                    <div class="invalid-feedback numStagesErr"></div>
+                  </div>
+                </div>
+                <div class="col-md-12" id="stagesTable" style="display: none;"></div>
               </div>
+
+              <!-- Show the stage container only if numStages has a value -->
+              <div v-if="numStages" class="mt-20">
+                <div class="col-md-12" id="stagesTable" style="display: block;">
+                  <div v-for="(stage, index) in stages" :key="index" class="form-row align-items-center"
+                    :id="`stageRow${index}`">
+                    <!-- Stage Label -->
+                    <div class="row col-md-10 form-left">
+                      <div class="form-group col-md-1">
+                        <label class="stage-label">Stage {{ index + 1 }}:</label>
+                      </div>
+                      <!-- Growth Rate Input -->
+                      <div class="form-floating col-md-2">
+                        <input type="text" :id="`stageGrowthRate${index}`" name="stageGrowthRate[]"
+                          class="form-control floatAllow" v-model="stage.rate" />
+                        <label :for="`stageGrowthRate${index}`">Growth Rate</label>
+                        <span class="yRateTag">%</span>
+                        <div class="invalid-feedback" :class="`stageGrowthRate${index}Err`"></div>
+                      </div>
+
+                      <!-- Duration Dropdown -->
+                      <div class="form-floating col-md-2">
+                        <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
+                          v-model="stage.duration">
+                          <option value="">Select years</option>
+                          <option value="1">1 Years</option>
+                          <option value="2">2 Years</option>
+                          <option value="3">3 Years</option>
+                          <option value="4">4 Years</option>
+                          <option value="5">5 Years</option>
+                          <option value="6">6 Years</option>
+                          <option value="7">7 Years</option>
+                          <option value="8">8 Years</option>
+                          <option value="9">9 Years</option>
+                          <option value="10">10 Years</option>
+                        </select>
+                        <label :for="`stageDuration${index}`">Duration</label>
+                        <div class="invalid-feedback" :class="`stageDuration${index}Err`"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
             </div>
+
           </div>
         </div>
         <button class="submit-button" @click="submitInputs">Submit Inputs</button>
@@ -142,13 +187,13 @@
       <p>Loading...</p>
     </div>
     <!-- Preview Section -->
-    <div class="table-container" v-if="forecastItems && forecastItems.length > 0 && !isLoading">
+    <div class="table-container" v-if="this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
       <div class="forecast-preview">
-        <h2>Preview Gross Margin Forecast</h2>
+        <h4>Preview the Revenue Growth Forecast</h4>
         <div class="revenue-table-container">
           <table class="revenue-table">
             <thead>
-              <tr>
+              <tr class="year-row">
                 <th>Year</th>
                 <th v-for="year in forecastYears" :key="year">{{ year }}</th>
               </tr>
@@ -156,7 +201,7 @@
             <tbody>
               <tr v-for="item in forecastItems" :key="item.lineItemId">
                 <td>{{ item.lineItemName }}</td>
-                <td v-for="value in item.values" :key="value">
+                <td v-for="(value, index) in item.values" :key="index">
                   {{ formatValueByType(value, item.unitType) }}
                 </td>
               </tr>
@@ -177,22 +222,27 @@
 export default {
   props: ['companyName'],
   created() {
+    this.companyId = sessionStorage.getItem('companyId');
     this.fetchHistoricalData();
     this.loadUserSelections();
+    this.showPreview();
   },
   data() {
+    const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
+      nextYear: null,
       forecastedData: [],
+      stagesOptions: [1, 2, 3, 4, 5],
       forecastMode: 'linear',
       rawHistoricalData: [],
       isLoading: false,
       isOpen: false,
       selectedGrowthType: 'constant',
       selectedCurrency: 'CAD',
-      forecastDuration: 3,
+      forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
-      inputGrowthRate: 3,
-      numStages: 3,
+      inputGrowthRate: null,
+      numStages: null,
       historicalData: {
         years: [],
         revenues: [],
@@ -216,7 +266,7 @@ export default {
   beforeRouteEnter(to, from, next) {
     next(vm => {
       // This runs after the route change, and the component is created
-      if (from.name === 'OperatingExpensesForecast') { // Adjust 'NextPageComponent' to the actual next page's name
+      if (from.name === 'GrowthMarginForecast') { // Adjust 'NextPageComponent' to the actual next page's name
         //vm.companyId = vm.getCompanyIdFromSession(); // Load the company ID
 
         // Call the API to fetch forecast data when the user navigates back
@@ -226,31 +276,40 @@ export default {
   },
   methods: {
     loadUserSelections() {
-      const savedSelections = sessionStorage.getItem('userSelections-revenueForecast');
+      const savedSelections = sessionStorage.getItem('userSelections-growthMarginForecast');
       if (savedSelections) {
         const parsedSelections = JSON.parse(savedSelections);
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
-        this.numStages = parsedSelections.numStages || 1;
-        this.stages = parsedSelections.stages || [{ rate: null, duration: null }];
-        this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
         this.forecastDuration = parsedSelections.forecastDuration || 1;
         this.selectedCurrency = parsedSelections.currency || 'CAD';
+
+        if (this.selectedGrowthType === 'gradient') {
+          this.gradientStart = parsedSelections.gradientStart || null;
+          this.gradientEnd = parsedSelections.gradientEnd || null;
+        } else if (this.selectedGrowthType === 'constant') {
+          this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
+        } else if (this.selectedGrowthType === 'staged') {
+          this.numStages = parsedSelections.numStages || 1;
+          this.stages = parsedSelections.stages || [{ rate: null, duration: null }];
+        }
       }
     },
     formatValueByType(value, type) {
-      if (type === 'percentage') {
-        return value.toFixed(2) + '%';
-      } else if (type === 'currency') {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+      if (type === 'PERCENTAGES') {
+        return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+      } else if (type === 'DOLLARS') {
+        return value % 1 === 0
+          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
+          : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
       } else {
         return value; // Default fallback
       }
     },
     fetchHistoricalData() {
-      const url = 'http://localhost:8080/api/lineItems/historical';
+      const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
         companyId: 1, // Replace with the actual companyId dynamically if needed
-        lineItemIds: [2,26] // Replace with the actual lineItemIds if needed
+        lineItemIds: [3, 4] // Replace with the actual lineItemIds if needed
       };
 
       fetch(url, {
@@ -273,15 +332,16 @@ export default {
           years.sort(); // Sort years in ascending order
           this.historicalData.years = years;
 
-          // Map values for Revenue
-          const revenueItem = data.find(item => item.lineItemId === 2);
+          this.nextYear = years[years.length - 1] + 1;
+          // Map values for Gross Profit
+          const revenueItem = data.find(item => item.lineItemId === 3);
           this.historicalData.revenues = years.map(year => {
             const annualValue = revenueItem.annualValues.find(av => av.year === year);
             return annualValue ? annualValue.value : 0; // Default to 0 if value for the year is missing
           });
 
-          // Map values for Revenue Growth
-          const growthItem = data.find(item => item.lineItemId === 26);
+          // Map values for Gross maer
+          const growthItem = data.find(item => item.lineItemId === 4);
           this.historicalData.growthRates = years.map(year => {
             const annualValue = growthItem.annualValues.find(av => av.year === year);
             return annualValue ? annualValue.value : 0; // Default to 0 if value for the year is missing
@@ -289,11 +349,12 @@ export default {
         })
         .catch(error => {
           console.error('Error fetching data:', error);
+          this.isLoading = false;
         });
-    }
-    ,
+    },
     mounted() {
       this.updateStages();
+      this.loadUserSelections()
     },
 
     async submitInputs() {
@@ -307,11 +368,12 @@ export default {
           growthType: this.selectedGrowthType,
           inputGrowthRate: this.inputGrowthRate,
           numberOfGrowthStages: this.numStages,
-          forecastMode : this.forecastMode,
+          forecastMode: this.forecastMode,
           growthStages: this.stages,
           gradientStartYear: this.gradientStart,
           gradientEndYear: this.gradientEnd,
-          forecastItems: this.rawHistoricalData.filter(item => item.lineItemId == 26).map(item => {
+          companyId: this.companyId,
+          forecastItems: this.rawHistoricalData.filter(item => item.lineItemId == 4).map(item => {
             // Find the max year entry from annualValues
             const maxYearData = item.annualValues.reduce((max, current) => {
               return current.year > max.year ? current : max;
@@ -325,9 +387,9 @@ export default {
             };
           })
         };
-        console.log(JSON.stringify(forecastRequest));
         // Send the forecast request to the backend API
-        fetch('http://localhost:8080/api/forecast/single', {
+        const forecastUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/forecast/single`
+        fetch(forecastUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -347,43 +409,53 @@ export default {
           });
       } catch (error) {
         console.error('Error in submitInputs:', error);
-      } finally {
-        this.isLoading = false;
       }
     }
     ,
     async showPreview() {
       try {
-        if (this.forecastedData.length > 0) {
-          console.log('Using existing forecasted data for preview.');
-          return;
-        }
         this.isLoading = true;
+        this.errorMessage = '';
 
+        // Define the desired order of lineItemIds
+        const lineItemIds = [3, 4]; // Replace or dynamically fetch as needed
+
+        // Prepare request payload
         const fetchForecastRequest = {
-          companyId: 1, // Replace with dynamic value if needed
-          lineItemIds: [2, 26], // Replace with selected line item IDs
+          companyId: this.companyId,
+          lineItemIds: lineItemIds,
         };
 
-        const response = await fetch('http://localhost:8080/api/lineItems/forecasted', {
+        // API call
+        const previewUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/forecasted`;
+        const response = await fetch(previewUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(fetchForecastRequest),
         });
+
+        // Handle response errors
         if (!response.ok) {
+          this.errorMessage = `Failed to fetch data: ${response.statusText}`;
           console.error('Error fetching forecasted data:', response.statusText);
           return;
         }
 
-        this.forecastedData = await response.json();
+        // Process API response
+        const forecastedData = await response.json();
+
+        // Ensure forecastedData is sorted based on lineItemIds
+        const sortedData = lineItemIds.map(lineItemId =>
+          forecastedData.find(item => item.lineItemId === lineItemId)
+        ).filter(Boolean); // Exclude undefined values if any lineItemId is missing
 
         // Prepare forecast table data
-        const years = [...new Set(this.forecastedData.flatMap(item => item.annualValues.map(av => av.year)))];
+        const years = [...new Set(sortedData.flatMap(item => item.annualValues.map(av => av.year)))];
         this.forecastYears = years.sort(); // Sort years in ascending order
 
-        this.forecastItems = this.forecastedData.map(item => ({
+        this.forecastItems = sortedData.map(item => ({
           lineItemId: item.lineItemId,
           lineItemName: item.lineItemName,
           unitType: item.unitType,
@@ -392,17 +464,24 @@ export default {
           ),
         }));
       } catch (error) {
+        this.errorMessage = 'An unexpected error occurred while fetching data.';
         console.error('Error in showPreview:', error);
       } finally {
         this.isLoading = false;
       }
     }
+
     ,
     formatCurrency(value) {
       return new Intl.NumberFormat('en-CA', {
         style: 'currency',
         currency: this.selectedCurrency
       }).format(value);
+    },
+    calculateGrowth(previousRevenue, currentRevenue) {
+      if (previousRevenue === 0) return 'N/A';
+      const growth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+      return growth.toFixed(2);
     },
     togglePreview() {
       this.isOpen = !this.isOpen;
@@ -413,26 +492,34 @@ export default {
     },
     updateStages() {
       // Adjust the stages array to match the number of stages input by the user
-      if (this.numStages > this.stages.length) {
-        while (this.stages.length < this.numStages) {
-          this.stages.push({ rate: 0, duration: 1 });
-        }
-      } else if (this.numStages < this.stages.length) {
-        this.stages.splice(this.numStages);
+      if (this.numStages && this.numStages > 0) {
+        // Populate the stages array based on the selected number of stages
+        this.stages = Array.from({ length: this.numStages }, () => ({ rate: 0, duration: 0 }));
+      } else {
+        // Clear stages if no valid selection is made
+        this.stages = [];
       }
     },
     goBack() {
       this.$router.go(-1);
     },
     goForward() {
-      let selctedOptions = {
+      let selectedOptions = {
         growthType: this.selectedGrowthType,
-        numStages: this.numStages,
-        stages: this.stages,
-        inputGrowthRate: this.inputGrowthRate,
         forecastDuration: this.forecastDuration,
       };
-      sessionStorage.setItem('userSelections-growthMarginForecast', JSON.stringify(selctedOptions));
+
+      if (this.selectedGrowthType === 'gradient') {
+        selectedOptions.gradientStart = this.gradientStart;
+        selectedOptions.gradientEnd = this.gradientEnd;
+      } else if (this.selectedGrowthType === 'constant') {
+        selectedOptions.inputGrowthRate = this.inputGrowthRate;
+      } else if (this.selectedGrowthType === 'staged') {
+        selectedOptions.numStages = this.numStages;
+        selectedOptions.stages = this.stages;
+      }
+
+      sessionStorage.setItem('userSelections-growthMarginForecast', JSON.stringify(selectedOptions));
       this.$router.push({ name: 'OperatingExpensesForecast' });
     }
   },
@@ -441,7 +528,14 @@ export default {
       return this.gradientStartYear + this.forecastDuration;
     },
     isInputsValid() {
-      return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+      if (this.selectedGrowthType === 'gradient') {
+        return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'constant') {
+        return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'staged') {
+        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0;
+      }
+      return false;
     },
     companyHeader() {
       const stockInfoString = sessionStorage.getItem('selectedStock');
@@ -713,24 +807,28 @@ button:disabled {
   /* Vertically align input fields */
 }
 
-.input-container input {
-  width: 50px;
-  /* Adjust width as needed */
-  padding: 5px;
-  text-align: center;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+
 
 .input-group {
   display: flex;
-  justify-content: space-between;
+  justify-content: right;
   /* Distribute space evenly */
   align-items: center;
   /* Vertically center elements */
 }
 
 .year-input {
+  display: flex;
+  align-items: center;
+}
+
+.year-input label {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.year-input .input-container {
   display: flex;
   align-items: center;
 }
@@ -805,5 +903,192 @@ button:disabled {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.gradient-growth-input {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  /* Minimal spacing between the inputs */
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.year-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.custom-dropdown {
+  display: block;
+  width: 25%;
+  /* Full width */
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  /* Adjust padding for dropdown size */
+  font-family: Arial, sans-serif;
+  /* Replace with your desired font */
+  font-size: 16px;
+  /* Adjust for readability */
+  font-weight: 400;
+  /* Normal font weight */
+  line-height: 1.5;
+  color: #495057;
+  /* Standard text color */
+  background-color: #fff;
+  /* White background */
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"%3E%3Cpath fill="%23ccc" d="M2 0L0 2h4zm0 5L0 3h4z"/%3E'), none;
+  /* Dropdown arrow */
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  /* Position arrow */
+  background-size: 10px 10px;
+  /* Size arrow */
+  border: 1px solid #ced4da;
+  /* Light gray border */
+  border-radius: 0.25rem;
+  /* Rounded corners */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+  /* Subtle inner shadow */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  /* Smooth transitions */
+  appearance: none;
+  /* Remove default styling for consistent look */
+
+  /* Focus state styling */
+  &:focus {
+    border-color: #80bdff;
+    /* Blue border on focus */
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    /* Glow effect on focus */
+  }
+
+  /* Styles for multiple selection or size attributes */
+  &[multiple],
+  &[size]:not([size="1"]) {
+    padding-right: 0.75rem;
+    /* Adjust padding */
+    background-image: none;
+    /* Remove arrow for multiple selection */
+  }
+}
+
+
+
+
+
+
+
+.year-input label {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+}
+
+.input-container input {
+  width: 150px;
+  padding: 5px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: right;
+}
+
+.input-container span {
+  margin-left: 5px;
+  font-size: 1rem;
+  color: #555;
+}
+
+.year-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.year-input label {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.year-input input {
+
+  width: 150px;
+  padding: 5px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: right;
+  height: 30px;
+}
+
+.growth-type {
+  margin-bottom: 20px;
+}
+
+.growth-type label {
+  display: block;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 10px;
+  /* Add spacing below the label */
+}
+
+.growth-buttons {
+  display: flex;
+  gap: 10px;
+  /* Add spacing between buttons */
+}
+
+.growth-type-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.growth-type-button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.yRateTag {
+  position: absolute;
+  top: 20px;
+  right: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  padding: .375rem .75rem;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+.stage-label {
+  padding-top: 12px;
+  font-weight: 500;
+}
+.year-row {
+    background-color: #ECECEC; /* Adjust the background color as needed */
+    font-weight: bold;
 }
 </style>

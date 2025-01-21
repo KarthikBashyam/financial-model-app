@@ -3,7 +3,7 @@
 
         <div class="table-container">
             <div class="header">
-                <h1>{{ companyHeader }}'s Historical Trend of Working Capital Expenses</h1>
+                <h4>{{ companyHeader }}'s Historical Trend of Working Capital</h4>
                 <div class="currency-selector">
                     <label for="currency">Currency:</label>
                     <select v-model="selectedCurrency" id="currency">
@@ -16,7 +16,7 @@
             <div class="revenue-table">
                 <table>
                     <thead>
-                        <tr>
+                        <tr class="year-row">
                             <th>Year</th>
                             <th v-for="year in historicalData.years" :key="'year-' + year">{{ year }}</th>
                         </tr>
@@ -26,7 +26,7 @@
                         <tr v-for="item in historicalData.items" :key="item.lineItemId">
                             <td>{{ item.name }}</td>
                             <td v-for="(value, index) in item.values" :key="'value-' + index">
-                                {{ item.unitType === 'PERCENTAGES' ? (value ? value.toFixed(2) + '%' : 'N/A') : value }}
+                                {{ formatValueByType(value, item.unitType) }}
                             </td>
                         </tr>
                     </tbody>
@@ -38,16 +38,16 @@
         <div class="table-container">
             <div class="forecast-assumptions">
                 <div class="header">
-                    <h1>Input Your Assumptions for Each Expense</h1>
+                    <h4>Input Your Growth Rate Assumptions</h4>
                 </div>
 
                 <div class="growth-type-container" v-for="(section, index) in expenseSections"
                     :key="section.internalAlias">
-                    <div><b>{{ section.name }}</b> (Alias: {{ section.internalAlias }})</div>
+                    <div><b>{{ section.name }}</b></div>
 
                     <div class="growth-type">
                         <label>Type of Forecast Method</label>
-                        <div class="growth-buttons">
+                        <div class="growth-buttons mt-20">
                             <button :class="{ active: section.selectedGrowthType === 'constant' }"
                                 @click="changeGrowthType(index, 'constant')" class="growth-type-button">
                                 Constant
@@ -67,15 +67,26 @@
                         </div>
 
                         <!-- Constant Growth -->
-                        <div v-if="section.selectedGrowthType === 'constant'" class="growth-input child-container">
+                        <!-- <div v-if="section.selectedGrowthType === 'constant'" class="growth-input child-container">
                             <label>Input Growth Rate</label>
                             <input type="number" v-model="section.inputGrowthRate" min="0" max="100"
                                 class="growth-rate-input"
                                 @input="updateInputGrowthRate(index, section.inputGrowthRate)" /> %
+                        </div> -->
+                        <div v-if="section.selectedGrowthType === 'constant'" class="form-row mt-20" id="constantRow"
+                            style="display: flex;">
+                            <div class="form-floating col-md-3">
+                                <input type="text" v-model="section.inputGrowthRate" min="0" max="100"
+                                    class="form-control flatAllow"
+                                    @input="updateInputGrowthRate(index, section.inputGrowthRate)" />
+                                <label for="grownthRate">Input Growth Rate</label>
+                                <span class="yRateTag">%</span>
+                                <div class="invalid-feedback growthRateErr" style="display: none;"></div>
+                            </div>
                         </div>
 
                         <!-- Gradient Growth -->
-                        <div v-if="section.selectedGrowthType === 'gradient'" class="gradient-growth-input">
+                        <!-- <div v-if="section.selectedGrowthType === 'gradient'" class="gradient-growth-input">
                             <p>From FY {{ gradientStartYear }} - {{ gradientStartYear + forecastDuration }}</p>
                             <div class="input-group">
                                 <div class="year-input">
@@ -100,10 +111,57 @@
                                     </button>
                                 </div>
                             </div>
+                        </div> -->
+                        <div v-if="section.selectedGrowthType === 'gradient'">
+                            <!-- Row for Gradient Input -->
+                            <div class="row mt-20 g-4">
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" id="startYearRate" name="startYearRate"
+                                            v-model="section.gradientStart" class="form-control floatAllow" />
+                                        <label for="startYearRate">Beginning Year Rate</label>
+                                        <span class="yRateTag">%</span>
+                                        <span class="form-span">Year: {{ nextYear }}</span>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" id="terminalYearRate" name="terminalYearRate"
+                                            v-model="section.gradientEnd" class="form-control floatAllow" />
+                                        <label for="terminalYearRate">Terminal Year Rate</label>
+                                        <span class="yRateTag">%</span>
+                                        <span class="form-span">
+                                            Year: {{ nextYear + forecastDuration - 1 }}
+                                        </span>
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mode of Forecast -->
+                            <div class="form-row text-start mt-20">
+                                <strong>Mode of Forecast</strong>
+                            </div>
+                            <div class="forecast-mode">
+                                <div class="forecast-buttons">
+                                    <button :class="{ active: section.forecastMode === 'linear' }"
+                                        @click="setForecastMode(index, 'linear')" class="btn btn-secondary btn-radios">
+                                        Linear
+                                    </button>
+                                    <button :class="{ active: section.forecastMode === 'exponential' }"
+                                        @click="setForecastMode(index, 'exponential')"
+                                        class="btn btn-secondary btn-radios">
+                                        Exponential
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
+
+
                         <!-- Staged Growth -->
-                        <div v-if="section.selectedGrowthType === 'staged'" class="staged-growth-input">
+                        <!-- <div v-if="section.selectedGrowthType === 'staged'" class="staged-growth-input">
                             <label>Number of Growth Stages</label>
                             <input type="number" v-model="section.numStages" min="1" @input="updateStages(index)" />
                             Stages
@@ -131,7 +189,80 @@
                                     </tbody>
                                 </table>
                             </div>
+                        </div> -->
+                        <div v-if="section.selectedGrowthType === 'staged'" class="staged-growth-input">
+                            <div class="row" id="stagedRow" style="display: flex;">
+                                <div class="form-row">
+                                    <div class="form-floating col-md-4">
+                                        <select id="numStages" name="numStages" class="form-select"
+                                            v-model="section.numStages" @change="updateStages(index)">
+                                            <option value="">Select Stages</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                        </select>
+                                        <label for="modelType">Number of Stages</label>
+                                        <div class="invalid-feedback numStagesErr"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-12" id="stagesTable" style="display: none;"></div>
+                            </div>
+
+                            <!-- Show the stage container only if numStages has a value -->
+                            <div v-if="section.numStages" class="mt-20">
+                                <div class="col-md-12" id="stagesTable" style="display: block;">
+                                    <div v-for="(stage, stageIndex) in section.stages" :key="stageIndex"
+                                        class="form-row align-items-center" :id="`stageRow${stageIndex}`">
+                                        <!-- Stage Label -->
+                                        <div class="row col-md-10 form-left">
+                                            <div class="form-group col-md-1">
+                                                <label class="stage-label">Stage {{ stageIndex + 1 }}:</label>
+                                            </div>
+                                            <!-- Growth Rate Input -->
+                                            <div class="form-floating col-md-2">
+                                                <input type="text" :id="`stageGrowthRate${stageIndex}`"
+                                                    name="stageGrowthRate[]" class="form-control floatAllow"
+                                                    v-model="stage.rate" />
+                                                <label :for="`stageGrowthRate${stageIndex}`">Growth Rate</label>
+                                                <span class="yRateTag">%</span>
+                                                <div class="invalid-feedback"
+                                                    :class="`stageGrowthRate${stageIndex}Err`">
+                                                </div>
+                                            </div>
+
+                                            <!-- Duration Dropdown -->
+                                            <div class="form-floating col-md-2">
+                                                <select :id="`stageDuration${stageIndex}`" name="stageDuration[]"
+                                                    class="form-select duration" v-model="stage.duration">
+                                                    <option value="">Select years</option>
+                                                    <option value="1">1 Years</option>
+                                                    <option value="2">2 Years</option>
+                                                    <option value="3">3 Years</option>
+                                                    <option value="4">4 Years</option>
+                                                    <option value="5">5 Years</option>
+                                                    <option value="6">6 Years</option>
+                                                    <option value="7">7 Years</option>
+                                                    <option value="8">8 Years</option>
+                                                    <option value="9">9 Years</option>
+                                                    <option value="10">10 Years</option>
+                                                </select>
+                                                <label :for="`stageDuration${stageIndex}`">Duration</label>
+                                                <div class="invalid-feedback" :class="`stageDuration${stageIndex}Err`">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -147,11 +278,11 @@
         <!-- Preview section-->
         <div class="table-container" v-if="forecastItems && forecastItems.length > 0">
             <div class="forecast-preview">
-                <h2>Preview of Operating Expenses Growth Forecast</h2>
+                <h4>Preview of Working Capital Growth Forecast</h4>
                 <div class="revenue-table-container">
                     <table class="revenue-table">
                         <thead>
-                            <tr>
+                            <tr class="year-row">
                                 <th>Year</th>
                                 <!-- Dynamically generate table headers for each year -->
                                 <th v-for="year in forecastYears" :key="year">
@@ -186,14 +317,18 @@
 export default {
     props: ['companyName'],
     created() {
+        this.companyId = sessionStorage.getItem('companyId');
         this.fetchHistoricalData().then(() => {
             this.initializeExpenseSections();
         });
+        this.showPreview()
+        this.loadUserSelections();
     },
 
     data() {
         const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
         return {
+            nextYear: null,
             historicalData: {
                 years: [],
                 items: [],
@@ -204,6 +339,7 @@ export default {
             forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3,
             selectedCurrency: 'CAD',
             isLoading: false,
+            companyId: sessionStorage.getItem('companyId'),
         };
     },
     computed: {
@@ -222,12 +358,74 @@ export default {
         },
         companyHeader() {
             const stockInfoString = sessionStorage.getItem('selectedStock');
-            const stockInfo = JSON.parse(stockInfoString);
-            return `${stockInfo.companyName}`;
+            if (stockInfoString) {
+                const stockInfo = JSON.parse(stockInfoString);
+                return `${stockInfo.companyName}`;
+            }
+            return '';
         }
     }
     ,
     methods: {
+        updateStages(sectionIndex) {
+            const section = this.expenseSections[sectionIndex];
+            if (section.numStages && section.numStages > 0) {
+              // Populate the stages array based on the selected number of stages
+              section.stages = Array.from({ length: section.numStages }, () => ({ rate: 0, duration: 0 }));
+            } else {
+              // Clear stages if no valid selection is made
+              section.stages = [];
+            }
+          },
+        loadUserSelections() {
+            const savedSelections = sessionStorage.getItem('userSelections-workingCapitalForecast');
+            if (savedSelections) {
+                const parsedSelections = JSON.parse(savedSelections);
+                this.expenseSections.forEach((section) => {
+                    const savedSection = parsedSelections.find((s) => s.name === section.name);
+                    if (savedSection) {
+                        section.selectedGrowthType = savedSection.growthType;
+                        section.forecastDuration = savedSection.forecastDuration;
+
+                        if (savedSection.growthType === 'gradient') {
+                            section.gradientStart = savedSection.gradientStart || 0;
+                            section.gradientEnd = savedSection.gradientEnd || 0;
+                        } else if (savedSection.growthType === 'constant') {
+                            section.inputGrowthRate = savedSection.inputGrowthRate || 0;
+                        } else if (savedSection.growthType === 'staged') {
+                            section.numStages = savedSection.numStages || 1;
+                            section.stages = savedSection.stages || [{ rate: 0, duration: 0 }];
+                        }
+                    }
+                });
+            }
+        },
+        saveUserSelections() {
+            const selectedOptions = this.expenseSections.map((section) => {
+                const option = {
+                    name: section.name, // Name of the expense
+                    growthType: section.selectedGrowthType, // Selected growth type
+                    forecastDuration: this.forecastDuration, // Forecast duration
+                };
+
+                if (section.selectedGrowthType === 'gradient') {
+                    option.gradientStart = section.gradientStart;
+                    option.gradientEnd = section.gradientEnd;
+                } else if (section.selectedGrowthType === 'constant') {
+                    option.inputGrowthRate = section.inputGrowthRate;
+                } else if (section.selectedGrowthType === 'staged') {
+                    option.numStages = section.numStages;
+                    option.stages = section.stages.map((stage) => ({
+                        rate: stage.rate,
+                        duration: stage.duration,
+                    }));
+                }
+
+                return option;
+            });
+
+            sessionStorage.setItem('userSelections-workingCapitalForecast', JSON.stringify(selectedOptions));
+        },
         changeGrowthType(index, type) {
             // Update the selectedGrowthType for the expense section
             this.expenseSections[index].selectedGrowthType = type;
@@ -258,28 +456,8 @@ export default {
         }
         ,
         goForward() {
-            const selectedOptions = this.expenseSections.map((section) => ({
-                name: section.name, // Name of the expense
-                growthType: section.selectedGrowthType, // Selected growth type
-                numStages: section.numStages, // Number of growth stages
-                stages: section.stages.map((stage) => ({
-                    rate: stage.rate,
-                    duration: stage.duration,
-                })), // Stages with growth rate and duration
-                inputGrowthRate: section.inputGrowthRate, // Input growth rate for constant growth
-                forecastDuration: this.forecastDuration, // Forecast duration
-                gradientStart: section.gradientStart, // Gradient start value for gradient growth
-                gradientEnd: section.gradientEnd, // Gradient end value for gradient growth
-                forecastMode: section.forecastMode, // Forecast mode (linear or exponential)
-            }));
-
-            // Store the selections in session storage
-            sessionStorage.setItem(
-                'userSelections-workingCapitalForecast',
-                JSON.stringify(selectedOptions)
-            );
-           // this.$router.push({ name: 'CapitalSpendingForecast' });
-           this.$router.push({name: 'IntrinsicValueForecast'});
+            this.saveUserSelections(); // Save user selections before navigating
+            this.$router.push({ name: 'ValuationPage' });
         },
         goBack() {
             this.$router.go(-1);
@@ -289,6 +467,7 @@ export default {
                 this.isLoading = true;
                 await this.fetchHistoricalData();
                 this.initializeExpenseSections();
+                this.loadUserSelections()
                 console.log('Page Initialized Successfully');
             } catch (error) {
                 console.error('Error initializing the page:', error);
@@ -297,10 +476,12 @@ export default {
             }
         },
         formatValueByType(value, type) {
-            if (type === 'PERCENTAGE') {
-                return value.toFixed(2) + '%';
-            } else if (type === 'Dollars') {
-                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+            if (type === 'PERCENTAGES') {
+                return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+            } else if (type === 'DOLLARS') {
+                return value % 1 === 0
+                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
+                    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
             } else {
                 return value; // Default fallback
             }
@@ -314,10 +495,10 @@ export default {
             }
         },
         async fetchHistoricalData() {
-            const url = 'http://localhost:8080/api/lineItems/historical';
+            const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
             const requestBody = {
-                companyId: 1, // Replace with dynamic value if needed
-                lineItemIds: [13, 12,16, 44, 45, 46] // Main and growth item IDs
+                companyId: this.companyId, // Replace with dynamic value if needed
+                lineItemIds: [26,27,34,71,72,73], // Main and growth item IDs
             };
 
             try {
@@ -340,8 +521,24 @@ export default {
                 const years = [...new Set(data.flatMap((item) => item.annualValues.map((av) => av.year)))];
                 this.historicalData.years = years.sort();
 
-                // Map the API data directly to historicalData.items
-                this.historicalData.items = data.map((item) => ({
+                // Sort data to show SG&A, R&D, and then Other Operating Expenses, each followed by its growth rate
+                const sortedData = [];
+                const order = [
+                    { id: 27, growthId: 72 }, // SG&A Expenses and its growth rate
+                    { id: 26, growthId: 71 }, // R&D Expenses and its growth rate
+                    { id: 34, growthId: 73 }, // Other Operating Expenses and its growth rate
+                ];
+
+                order.forEach(({ id, growthId }) => {
+                    const mainItem = data.find(item => item.lineItemId === id);
+                    const growthItem = data.find(item => item.lineItemId === growthId);
+                    if (mainItem) sortedData.push(mainItem);
+                    if (growthItem) sortedData.push(growthItem);
+                });
+                this.nextYear = years[years.length - 1] + 1;
+
+                // Map the sorted data to historicalData.items
+                this.historicalData.items = sortedData.map((item) => ({
                     name: item.lineItemName,
                     lineItemId: item.lineItemId,
                     internalAlias: item.internalAlias,
@@ -355,10 +552,7 @@ export default {
             } catch (error) {
                 console.error('Error fetching historical data:', error);
             }
-        }
-
-
-        ,
+        },
         initializeExpenseSections() {
             // Ensure historicalData is populated before mapping
             if (!this.historicalData.items || this.historicalData.items.length === 0) {
@@ -368,7 +562,7 @@ export default {
 
             // Filter out growth items (i.e., items where internalAlias ends with "Growth")
             const regularItems = this.historicalData.items.filter(
-                (item) => !item.internalAlias.endsWith('Growth')
+                (item) => !item.internalAlias.endsWith('percent')
             );
 
             // Map only regular items to expenseSections
@@ -397,7 +591,7 @@ export default {
         async submitInputs() {
             try {
                 this.isLoading = true;
-
+                this.saveUserSelections();
                 // Create forecast requests for each expense section
                 const forecastRequests = this.expenseSections.map((section) => {
                     // Find the corresponding regular item in historical data
@@ -407,7 +601,7 @@ export default {
 
                     // Find the growth item in historical data for the same section
                     const growthItem = this.historicalData.items.find(
-                        (item) => item.internalAlias === `${section.internalAlias}Growth`
+                        (item) => item.internalAlias === `${section.internalAlias}_growth_percent`
                     );
 
                     // Get the most recent year's data for the regular item
@@ -460,14 +654,15 @@ export default {
                         forecastItems,
                         gradientStartYear: Number(section.gradientStart) || 0,
                         gradientEndYear: Number(section.gradientEnd) || 0,
-                        companyId: 1, // Replace with dynamic value if needed
+                        companyId: this.companyId
                     };
                 });
 
                 console.log('Forecast Requests:', forecastRequests);
 
                 // Submit the forecast requests to the backend
-                const response = await fetch('http://localhost:8080/api/forecast/multiple', {
+                const forecastUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/forecast/multiple`;
+                const response = await fetch(forecastUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -491,9 +686,7 @@ export default {
             } finally {
                 this.isLoading = false;
             }
-        }
-
-        ,
+        },
         async showPreview() {
             try {
                 if (this.forecastData && this.forecastData.length > 0) {
@@ -504,11 +697,12 @@ export default {
                 this.isLoading = true;
 
                 const fetchForecastRequest = {
-                    companyId: 1,
-                    lineItemIds: [13, 12,16, 44, 45, 46],
+                    companyId: this.companyId,
+                    lineItemIds: [26,27,34,71,72,73],
+                    forecastStartYear: this.historicalData.years[this.historicalData.years.length - 1] + 1,
                 };
-
-                const response = await fetch('http://localhost:8080/api/lineItems/forecasted', {
+                const previewUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/forecasted`;
+                const response = await fetch(previewUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -542,6 +736,10 @@ export default {
                 this.isLoading = false;
             }
         },
+    },
+    mounted() {
+        this.initializePage();
+        this.loadUserSelections();
     },
 };
 </script>
@@ -907,5 +1105,25 @@ button:disabled {
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: #f9f9f9;
+}
+
+.year-row {
+    background-color: #ECECEC;
+    /* Adjust the background color as needed */
+    font-weight: bold;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.yRateTag {
+    position: absolute;
+    top: 20px;
+    right: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 22px;
+    padding: .375rem .75rem;
 }
 </style>

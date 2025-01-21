@@ -29,14 +29,14 @@
                     </div>
                     <span>{{ forecastDuration ? `${forecastDuration} Years` : "" }}</span>
                 </div>
-                <div class="input-group">
+                <!-- <div class="input-group">
                     <label for="cost-of-capital">Cost of Capital</label>
                     <div class="input-with-symbol">
                         <input type="number" id="cost-of-capital" v-model.number="costOfCapital" step="0.1" min="0"
                             placeholder="Enter cost of capital" />
                         <span class="symbol">%</span>
                     </div>
-                </div>
+                </div> -->
             </div>
 
             <button :disabled="!selectedModel" class="continue-button" @click="proceedToNextStep">

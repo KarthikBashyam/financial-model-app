@@ -8,6 +8,7 @@ import CapitalSpendingForecastComponent from '@/components/CapitalSpendingForeca
 import WorkingCapitalForecastComponent from '@/components/WorkingCapitalForecastComponent.vue';
 import IntrinsicValueComponent from '@/components/IntrinsicValueComponent.vue';
 import SelectValuationModelComponent from '@/components/SelectValuationModelComponent.vue';
+import ValuationComponent from '@/components/ValuationComponent.vue';
 
 const routes = [
   {
@@ -59,6 +60,12 @@ const routes = [
         path: 'working-capital-forecast',
         name: 'WorkingCapitalForecast',
         component: WorkingCapitalForecastComponent,
+        props: true
+      },
+      {
+        path: 'valuation-page',
+        name : 'ValuationPage',
+        component: ValuationComponent,
         props: true
       },
       {

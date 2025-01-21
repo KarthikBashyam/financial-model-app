@@ -15,9 +15,9 @@
       <div class="revenue-table">
         <table >
           <thead class="bg-body">
-            <tr>
+            <tr class="year-row">
               <th>Year</th>
-              <th v-for="year in historicalData.years" :key="year">{{ year }}</th>
+              <th v-for="year in historicalData.years" :key="'year-' + year">{{ year }}</th>
             </tr>
           </thead>
           <tbody>
@@ -31,8 +31,8 @@
             <!-- Revenue Growth Row -->
             <tr>
               <td>Revenue Growth</td>
-              <td v-for="(revenue, index) in historicalData.revenues" :key="'growth-' + index">
-                {{ index > 0 ? calculateGrowth(historicalData.revenues[index - 1], revenue) + '%' : 'N/A' }}
+              <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
+                {{ growth }}%
               </td>
             </tr>
           </tbody>
@@ -187,13 +187,13 @@
       <p>Loading...</p>
     </div>
     <!-- Preview Section -->
-    <div class="table-container" v-if="forecastItems && forecastItems.length > 0 && !isLoading">
+    <div class="table-container" v-if="this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
       <div class="forecast-preview">
         <h4>Preview the Revenue Growth Forecast</h4>
         <div class="revenue-table-container">
           <table class="revenue-table">
             <thead>
-              <tr>
+              <tr class="year-row">
                 <th>Year</th>
                 <th v-for="year in forecastYears" :key="year">{{ year }}</th>
               </tr>
@@ -201,7 +201,7 @@
             <tbody>
               <tr v-for="item in forecastItems" :key="item.lineItemId">
                 <td>{{ item.lineItemName }}</td>
-                <td v-for="value in item.values" :key="value">
+                <td v-for="(value, index) in item.values" :key="index">
                   {{ formatValueByType(value, item.unitType) }}
                 </td>
               </tr>
@@ -222,13 +222,15 @@
 export default {
   props: ['companyName'],
   created() {
+    this.companyId = sessionStorage.getItem('companyId');
     this.fetchHistoricalData();
     this.loadUserSelections();
+    this.showPreview();
   },
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
-    return {
-      nextYear: new Date().getFullYear() + 1,
+    return {      
+      nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
       forecastMode: 'linear',
@@ -239,7 +241,7 @@ export default {
       selectedCurrency: 'CAD',
       forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
-      inputGrowthRate: 3,
+      inputGrowthRate: null,
       numStages: null,
       historicalData: {
         years: [],
@@ -278,18 +280,27 @@ export default {
       if (savedSelections) {
         const parsedSelections = JSON.parse(savedSelections);
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
-        this.numStages = parsedSelections.numStages || 1;
-        this.stages = parsedSelections.stages || [{ rate: null, duration: null }];
-        this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
         this.forecastDuration = parsedSelections.forecastDuration || 1;
         this.selectedCurrency = parsedSelections.currency || 'CAD';
+
+        if (this.selectedGrowthType === 'gradient') {
+          this.gradientStart = parsedSelections.gradientStart || null;
+          this.gradientEnd = parsedSelections.gradientEnd || null;
+        } else if (this.selectedGrowthType === 'constant') {
+          this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
+        } else if (this.selectedGrowthType === 'staged') {
+          this.numStages = parsedSelections.numStages || 1;
+          this.stages = parsedSelections.stages || [{ rate: null, duration: null }];
+        }
       }
     },
     formatValueByType(value, type) {
-      if (type === 'percentage') {
-        return value.toFixed(2) + '%';
-      } else if (type === 'currency') {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+      if (type === 'PERCENTAGES') {
+        return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+      } else if (type === 'DOLLARS') {
+        return value % 1 === 0
+          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
+          : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
       } else {
         return value; // Default fallback
       }
@@ -297,8 +308,8 @@ export default {
     fetchHistoricalData() {
       const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
-        companyId: 1, // Replace with the actual companyId dynamically if needed
-        lineItemIds: [1, 33] // Replace with the actual lineItemIds if needed
+        companyId: this.companyId, // Replace with the actual companyId dynamically if needed
+        lineItemIds: [1, 66] // Replace with the actual lineItemIds if needed
       };
 
       fetch(url, {
@@ -315,12 +326,13 @@ export default {
           return response.json();
         })
         .then(data => {
-          this.rawHistoricalData = data;
+          this.rawHistoricalData = data;          
           // Extract unique years from the annualValues of both items
           const years = [...new Set(data.flatMap(item => item.annualValues.map(av => av.year)))];
           years.sort(); // Sort years in ascending order
           this.historicalData.years = years;
 
+          this.nextYear = years[years.length - 1] + 1;
           // Map values for Revenue
           const revenueItem = data.find(item => item.lineItemId === 1);
           this.historicalData.revenues = years.map(year => {
@@ -329,7 +341,7 @@ export default {
           });
 
           // Map values for Revenue Growth
-          const growthItem = data.find(item => item.lineItemId === 33);
+          const growthItem = data.find(item => item.lineItemId === 66);
           this.historicalData.growthRates = years.map(year => {
             const annualValue = growthItem.annualValues.find(av => av.year === year);
             return annualValue ? annualValue.value : 0; // Default to 0 if value for the year is missing
@@ -337,15 +349,15 @@ export default {
         })
         .catch(error => {
           console.error('Error fetching data:', error);
+          this.isLoading = false;
         });
-    }
-    ,
+    },
     mounted() {
       this.updateStages();
     },
 
     async submitInputs() {
-      try {
+      try {        
         // Prepare the forecast request
         this.isLoading = true;
         this.forecastedData = [];
@@ -359,6 +371,7 @@ export default {
           growthStages: this.stages,
           gradientStartYear: this.gradientStart,
           gradientEndYear: this.gradientEnd,
+          companyId: this.companyId, 
           forecastItems: this.rawHistoricalData.map(item => {
             // Find the max year entry from annualValues
             const maxYearData = item.annualValues.reduce((max, current) => {
@@ -400,15 +413,11 @@ export default {
     ,
     async showPreview() {
       try {
-        if (this.forecastedData.length > 0) {
-          console.log('Using existing forecasted data for preview.');
-          return;
-        }
-        this.isLoading = true;
 
+        this.isLoading = true;                
         const fetchForecastRequest = {
-          companyId: 1, // Replace with dynamic value if needed
-          lineItemIds: [1, 33], // Replace with selected line item IDs
+          companyId: this.companyId, // Replace with dynamic value if needed
+          lineItemIds: [1, 66], // Replace with selected line item IDs          
         };
         const previewUrl = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/forecasted`
         const response = await fetch(previewUrl, {
@@ -476,14 +485,22 @@ export default {
       this.$router.go(-1);
     },
     goForward() {
-      let selctedOptions = {
+      let selectedOptions = {
         growthType: this.selectedGrowthType,
-        numStages: this.numStages,
-        stages: this.stages,
-        inputGrowthRate: this.inputGrowthRate,
         forecastDuration: this.forecastDuration,
       };
-      sessionStorage.setItem('userSelections-revenueForecast', JSON.stringify(selctedOptions));
+
+      if (this.selectedGrowthType === 'gradient') {
+        selectedOptions.gradientStart = this.gradientStart;
+        selectedOptions.gradientEnd = this.gradientEnd;
+      } else if (this.selectedGrowthType === 'constant') {
+        selectedOptions.inputGrowthRate = this.inputGrowthRate;
+      } else if (this.selectedGrowthType === 'staged') {
+        selectedOptions.numStages = this.numStages;
+        selectedOptions.stages = this.stages;
+      }
+
+      sessionStorage.setItem('userSelections-revenueForecast', JSON.stringify(selectedOptions));
       this.$router.push({ name: 'GrowthMarginForecast' });
     }
   },
@@ -492,7 +509,14 @@ export default {
       return this.gradientStartYear + this.forecastDuration;
     },
     isInputsValid() {
-      return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+      if (this.selectedGrowthType === 'gradient') {
+        return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'constant') {
+        return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'staged') {
+        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0;
+      }
+      return false;
     },
     companyHeader() {
       const stockInfoString = sessionStorage.getItem('selectedStock');
@@ -1042,5 +1066,9 @@ button:disabled {
 .stage-label {
 	padding-top:12px;
 	font-weight:500;
+}
+.year-row {
+    background-color: #ECECEC;
+    font-weight: bold;
 }
 </style>

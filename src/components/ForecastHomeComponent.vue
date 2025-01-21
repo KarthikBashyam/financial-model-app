@@ -47,17 +47,17 @@
           exact
           active-class="active-link"
         >
-          Working Capital Assumptions
+          Working Capital
         </router-link>
 
-        <!-- <router-link
-          to="/forecast-home/other-parameters"
+        <router-link
+          to="/forecast-home/valuation-page"
           class="link"
           exact
           active-class="active-link"
         >
-          Other Parameters
-        </router-link>-->
+          Valuation
+        </router-link>
       </div>
     </aside>
 
