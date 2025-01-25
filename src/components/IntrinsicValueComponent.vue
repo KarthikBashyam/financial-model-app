@@ -24,7 +24,7 @@
           <div class="filters d-flex justify-content-between align-items-center mb-3">
             <div>
               <span class="text-muted me-2">FY END</span>
-              <span class="fw-bold">03-Dec-24</span>
+              <span class="fw-bold"></span>
             </div>
             <div>
               <span class="text-muted me-2">Sort</span>
@@ -33,10 +33,10 @@
               <i class="bi bi-funnel"></i>
             </div>
             <div>
-              <span class="text-muted me-2">CURRENCY: CAD</span>
-              <select class="form-select form-select-sm d-inline-block w-auto">
-                <option>Billions</option>
-                <option>Millions</option>
+              <span class="text-muted me-2">CURRENCY: USD</span>
+              <select v-model="selectedFormat" class="form-select form-select-sm d-inline-block w-auto">                
+                <option value="Millions">Millions</option>
+                <option value="Billions">Billions</option>
               </select>
             </div>
           </div>
@@ -53,7 +53,8 @@
               <tbody>
                 <tr>
                   <td>EBIT*(1-T)</td>
-                  <td v-for="year in forecastYears" :key="'ebit-' + year">{{ formatValue(forecastedEBITCosts[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'ebit-' + year">{{ formatValue(forecastedEBITCosts[year]) }}
+                  </td>
                 </tr>
                 <tr>
                   <td>D&A</td>
@@ -65,15 +66,18 @@
                 </tr>
                 <tr>
                   <td>Net Change in Working Capital</td>
-                  <td v-for="year in forecastYears" :key="'nwc-' + year">{{ formatValue(forecastedNWCCosts[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'nwc-' + year">{{ formatValue(forecastedNWCCosts[year]) }}
+                  </td>
                 </tr>
                 <tr>
                   <td>FCFF</td>
-                  <td v-for="year in forecastYears" :key="'fcff-' + year">{{ formatValue(forecastedFCFFCosts[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'fcff-' + year">{{ formatValue(forecastedFCFFCosts[year]) }}
+                  </td>
                 </tr>
                 <tr>
                   <td>PV of FCFF</td>
-                  <td v-for="year in forecastYears" :key="'pvfcff-' + year">{{ formatValue(presentValueOfFCFFMap[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'pvfcff-' + year">{{ formatValue(presentValueOfFCFFMap[year])
+                    }}</td>
                 </tr>
               </tbody>
             </table>
@@ -81,37 +85,25 @@
 
           <!-- Non-tabular Values -->
           <div class="non-tabular-values mt-4">
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <div class="value-item">
-                  <span class="label">Terminal EV:</span>
-                  <span class="value">{{ formatCurrency(terminalEV) }}</span>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="value-item">
-                  <span class="label">PV of Terminal EV:</span>
-                  <span class="value">{{ formatCurrency(presentValueOfTerminalEV) }}</span>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="value-item">
-                  <span class="label">Intrinsic Enterprise Value:</span>
-                  <span class="value">{{ formatCurrency(intrinsicEnterpriseValue) }}</span>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="value-item">
-                  <span class="label">Intrinsic Equity Value:</span>
-                  <span class="value">{{ formatCurrency(intrinsicEquityValue) }}</span>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="value-item">
-                  <span class="label">Intrinsic Value (per share):</span>
-                  <span class="value">{{ formatCurrency(intrinsicValue) }}</span>
-                </div>
-              </div>
+            <div class="value-item">
+              <span class="label">Terminal EV:</span>
+              <span class="value">{{ formatCurrency(terminalEV) }}</span>
+            </div>
+            <div class="value-item">
+              <span class="label">PV of Terminal EV:</span>
+              <span class="value">{{ formatCurrency(presentValueOfTerminalEV) }}</span>
+            </div>
+            <div class="value-item">
+              <span class="label">Intrinsic Enterprise Value:</span>
+              <span class="value ">{{ formatCurrency(intrinsicEnterpriseValue) }}</span>
+            </div>
+            <div class="value-item">
+              <span class="label">Intrinsic Equity Value:</span>
+              <span class="value">{{ formatCurrency(intrinsicEquityValue) }}</span>
+            </div>
+            <div class="value-item">
+              <span class="label">Intrinsic Value (per share):</span>
+              <span class="value">{{ formatCurrency(intrinsicValue) }}</span>
             </div>
           </div>
         </div>
@@ -304,21 +296,27 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  margin-top: 10px; /* Add margin between buttons */
+  margin-top: 10px;
+  /* Add margin between buttons */
 }
 
-.watchlist-button, .download-button {
+.watchlist-button,
+.download-button {
   background-color: #2d89ef;
   color: white;
   border: none;
-  border-radius: 10px; /* Increased border radius */
-  padding: 15px 25px; /* Larger button */
-  font-size: 1.2rem; /* Larger font size */
+  border-radius: 10px;
+  /* Increased border radius */
+  padding: 15px 25px;
+  /* Larger button */
+  font-size: 1.2rem;
+  /* Larger font size */
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-.watchlist-button:hover, .download-button:hover {
+.watchlist-button:hover,
+.download-button:hover {
   background-color: #2163c7;
 }
 
@@ -378,13 +376,15 @@ export default {
   border-collapse: collapse;
 }
 
-.data-table th, .data-table td {
+.data-table th,
+.data-table td {
   padding: 12px;
   text-align: right;
   border-bottom: 1px solid #dee2e6;
 }
 
-.data-table th:first-child, .data-table td:first-child {
+.data-table th:first-child,
+.data-table td:first-child {
   text-align: left;
 }
 
@@ -418,10 +418,16 @@ export default {
 
 .value-item {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 0.75rem;
+}
+
+
+.label {
+  font-weight: bold;
+  min-width: 250px;
+  margin-right: 1rem;
 }
 
 .value-item:last-child {
@@ -433,9 +439,19 @@ export default {
   color: #495057;
 }
 
+.value {
+  flex-grow: 1;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
 .value-item .value {
   color: #007bff;
   font-weight: bold;
+  text-align: right;
+  flex: 0 0 auto;
+  min-width: 120px;
 }
 </style>
-

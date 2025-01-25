@@ -27,7 +27,7 @@
                         <input type="range" min="1" max="10" step="1" v-model="forecastDuration"
                             @input="syncTextInputWithSlider" />
                     </div>
-                    <span>{{ forecastDuration ? `${forecastDuration} Years` : "" }}</span>
+                    <span>Years</span>
                 </div>
                 <!-- <div class="input-group">
                     <label for="cost-of-capital">Cost of Capital</label>
@@ -43,6 +43,27 @@
                 Continue
             </button>
         </div>
+    </div>
+    <div class="select-valuation-model-container">
+        <div class="header">
+            <h2>Select Valuation Model</h2>
+            <div class="forecast-duration">
+                <span>{{ forecastDuration ? `${forecastDuration} Years` : "" }}</span>
+            </div>
+        </div>
+        <div class="input-group">
+            <label for="forecast-duration">Forecast Duration (DCF)</label>
+            <div class="dual-input-container">
+                <!-- Text Box for Input -->
+                <input type="text" id="forecast-duration" v-model="forecastDurationInput"
+                    placeholder="Enter forecast duration (years)" @blur="validateForecastDuration" />
+                <!-- Slider for Input -->
+                <input type="range" min="1" max="10" step="1" v-model="forecastDuration"
+                    @input="syncTextInputWithSlider" />
+            </div>
+            <span class="years-label">Years</span>
+        </div>
+        <!-- Other content -->
     </div>
 </template>
 
@@ -77,7 +98,7 @@ export default {
                 console.log(`Cost of Capital: ${this.costOfCapital}%`);
             }
             //alert(`Proceeding with: ${this.selectedModel}`);
-            this.submitPreferences();
+            //this.submitPreferences();
             sessionStorage.setItem('userSelections-foreCastDuration', JSON.stringify(this.forecastDuration));
             this.$router.push({ name: 'ForecastHome' });
             // Add logic to navigate to the next step
@@ -233,6 +254,7 @@ input[type="number"] {
     border: 1px solid #d6e4f2;
     border-radius: 5px;
     font-size: 1rem;
+    text-align: left;
 }
 
 .input-with-symbol {
@@ -277,5 +299,64 @@ span {
 
 .continue-button:hover:not(:disabled) {
     background-color: #2163c7;
+}
+
+.select-valuation-model-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.forecast-duration {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.forecast-duration span {
+    font-size: 1.2rem;
+    color: #34495e;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.dual-input-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.dual-input-container input[type="text"] {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.dual-input-container input[type="range"] {
+    flex: 1;
+}
+
+.years-label {
+    margin-top: 10px;
+    font-size: 1rem;
+    color: #34495e;
+    align-self: flex-start; /* Align the span to the start of the container */
 }
 </style>

@@ -154,9 +154,9 @@
                       <!-- Duration Dropdown -->
                       <div class="form-floating col-md-2">
                         <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
-                          v-model="stage.duration">
+                          v-model="stage.duration" @change="validateTotalDuration">
                           <option value="">Select years</option>
-                          <option value="1">1 Years</option>
+                          <option value="1">1 Year</option>
                           <option value="2">2 Years</option>
                           <option value="3">3 Years</option>
                           <option value="4">4 Years</option>
@@ -173,14 +173,13 @@
                     </div>
                   </div>
                 </div>
+                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
               </div>
-
-
             </div>
 
           </div>
         </div>
-        <button class="submit-button" @click="submitInputs">Submit Inputs</button>
+        <button :disabled="totalDurationExceeds" class="btn btn-primary mt-4">Submit</button>
       </div>
     </div>
     <div v-if="isLoading" class="spinner-container">
@@ -262,7 +261,8 @@ export default {
         { rate: null, duration: null },
         { rate: null, duration: null },
         { rate: null, duration: null }
-      ]
+      ],
+      totalDurationExceeds: false
 
     };
   },
@@ -307,17 +307,7 @@ export default {
       } else {
         return value; // Default fallback
       }
-    },
-    /*formatRevenue(value) {
-      switch (this.selectedFormat) {
-        case 'Millions':
-          return `${(value / 1e6).toFixed(2)}M`;
-        case 'Billions':
-          return `${(value / 1e9).toFixed(2)}B`;
-        default:
-          return this.formatCurrency(value);
-      }
-    },*/
+    },    
     fetchHistoricalData() {
       const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
@@ -479,14 +469,11 @@ export default {
       this.growthType = type;
     },
     updateStages() {
-      // Adjust the stages array to match the number of stages input by the user
-      if (this.numStages && this.numStages > 0) {
-        // Populate the stages array based on the selected number of stages
-        this.stages = Array.from({ length: this.numStages }, () => ({ rate: 0, duration: 0 }));
-      } else {
-        // Clear stages if no valid selection is made
-        this.stages = [];
-      }
+      this.stages = Array.from({ length: this.numStages }, () => ({ rate: '', duration: '' }));
+    },
+    validateTotalDuration() {
+      const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
+      this.totalDurationExceeds = totalDuration > this.forecastDuration;
     },
     goBack() {
       this.$router.go(-1);
@@ -529,6 +516,14 @@ export default {
       const stockInfoString = sessionStorage.getItem('selectedStock');
       const stockInfo = JSON.parse(stockInfoString);
       return `${stockInfo.companyName}`;
+    }
+  },
+  watch: {
+    stages: {
+      handler() {
+        this.validateTotalDuration();
+      },
+      deep: true
     }
   }
 };
@@ -915,66 +910,6 @@ button:disabled {
   align-items: center;
 }
 
-.custom-dropdown {
-  display: block;
-  width: 25%;
-  /* Full width */
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
-  /* Adjust padding for dropdown size */
-  font-family: Arial, sans-serif;
-  /* Replace with your desired font */
-  font-size: 16px;
-  /* Adjust for readability */
-  font-weight: 400;
-  /* Normal font weight */
-  line-height: 1.5;
-  color: #495057;
-  /* Standard text color */
-  background-color: #fff;
-  /* White background */
-  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"%3E%3Cpath fill="%23ccc" d="M2 0L0 2h4zm0 5L0 3h4z"/%3E'), none;
-  /* Dropdown arrow */
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  /* Position arrow */
-  background-size: 10px 10px;
-  /* Size arrow */
-  border: 1px solid #ced4da;
-  /* Light gray border */
-  border-radius: 0.25rem;
-  /* Rounded corners */
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
-  /* Subtle inner shadow */
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  /* Smooth transitions */
-  appearance: none;
-  /* Remove default styling for consistent look */
-
-  /* Focus state styling */
-  &:focus {
-    border-color: #80bdff;
-    /* Blue border on focus */
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    /* Glow effect on focus */
-  }
-
-  /* Styles for multiple selection or size attributes */
-  &[multiple],
-  &[size]:not([size="1"]) {
-    padding-right: 0.75rem;
-    /* Adjust padding */
-    background-image: none;
-    /* Remove arrow for multiple selection */
-  }
-}
-
-
-
-
-
-
-
 .year-input label {
   font-size: 1rem;
   color: #555;
@@ -1079,5 +1014,11 @@ button:disabled {
 .year-row {
   background-color: #ECECEC;
   font-weight: bold;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
 }
 </style>
