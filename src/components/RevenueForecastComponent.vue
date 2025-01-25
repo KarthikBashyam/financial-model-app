@@ -4,16 +4,17 @@
     <div class="table-container">
       <div class="header">
         <h4>{{ companyHeader }}'s Historical Revenue and Growth (%)</h4>
-        <div class="currency-selector">
-          <label for="currency">Currency:</label>
-          <select v-model="selectedCurrency" id="currency">
-            <option value="CAD">CAD</option>
+        <div class="relative">
+          <select v-model="selectedFormat" id="currency"
+            class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
             <option value="USD">USD</option>
+            <option value="Millions">Millions</option>
+            <option value="Billions">Billions</option>
           </select>
         </div>
       </div>
       <div class="revenue-table">
-        <table >
+        <table>
           <thead class="bg-body">
             <tr class="year-row">
               <th>Year</th>
@@ -25,14 +26,14 @@
             <tr>
               <td>Revenue</td>
               <td v-for="(revenue, index) in historicalData.revenues" :key="'revenue-' + index">
-                {{ formatCurrency(revenue) }}
+                {{ formatRevenue(revenue, selectedFormat) }}
               </td>
             </tr>
             <!-- Revenue Growth Row -->
             <tr>
               <td>Revenue Growth</td>
               <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
-                {{ growth }}%
+                {{ formatGrowthRate(growth) }}%
               </td>
             </tr>
           </tbody>
@@ -53,7 +54,7 @@
             <label><b>Type of Growth</b></label>
             <div class="growth-buttons">
               <button :class="{ active: selectedGrowthType === 'constant' }" @click="changeGrowthType('constant')"
-                class="btn btn-secondary btn-radios">Constant</button>
+                class="btn btn-secondary btn-radios" >Constant</button>
               <button :class="{ active: selectedGrowthType === 'gradient' }" @click="changeGrowthType('gradient')"
                 class="btn btn-secondary btn-radio">Gradient</button>
               <button :class="{ active: selectedGrowthType === 'staged' }" @click="changeGrowthType('staged')"
@@ -79,7 +80,7 @@
                       class="form-control floatAllow" value="16">
                     <label for="startYearRate">Beginning Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: {{nextYear}}</span>
+                    <span class="form-span">Year: {{ nextYear }}</span>
                     <div class="invalid-feedback startYearRateErr"></div>
                   </div>
                 </div>
@@ -89,7 +90,7 @@
                       value="8" v-model="gradientEnd">
                     <label for="terminalYearRate">Terminal Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: {{nextYear + forecastDuration - 1}}</span>
+                    <span class="form-span">Year: {{ nextYear + forecastDuration - 1 }}</span>
                     <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
                 </div>
@@ -99,7 +100,7 @@
               <div class="forecast-mode">
                 <div class="forecast-buttons">
                   <button :class="{ active: forecastMode === 'linear' }"
-                    @click="forecastMode = 'linear'">Linear</button>
+                    @click="forecastMode = 'linear'" >Linear</button>
                   <button :class="{ active: forecastMode === 'exponential' }"
                     @click="forecastMode = 'exponential'">Exponential</button>
                 </div>
@@ -137,39 +138,39 @@
                   <div v-for="(stage, index) in stages" :key="index" class="form-row align-items-center"
                     :id="`stageRow${index}`">
                     <!-- Stage Label -->
-                    <div class="row col-md-10 form-left">  
-                    <div class="form-group col-md-1">
-                      <label class="stage-label">Stage {{ index + 1 }}:</label>
-                    </div>                    
-                    <!-- Growth Rate Input -->
-                    <div class="form-floating col-md-2">
-                      <input type="text" :id="`stageGrowthRate${index}`" name="stageGrowthRate[]"
-                        class="form-control floatAllow" v-model="stage.rate" />
-                      <label :for="`stageGrowthRate${index}`">Growth Rate</label>
-                      <span class="yRateTag">%</span>
-                      <div class="invalid-feedback" :class="`stageGrowthRate${index}Err`"></div>
-                    </div>
+                    <div class="row col-md-10 form-left">
+                      <div class="form-group col-md-1">
+                        <label class="stage-label">Stage {{ index + 1 }}:</label>
+                      </div>
+                      <!-- Growth Rate Input -->
+                      <div class="form-floating col-md-2">
+                        <input type="text" :id="`stageGrowthRate${index}`" name="stageGrowthRate[]"
+                          class="form-control floatAllow" v-model="stage.rate" />
+                        <label :for="`stageGrowthRate${index}`">Growth Rate</label>
+                        <span class="yRateTag">%</span>
+                        <div class="invalid-feedback" :class="`stageGrowthRate${index}Err`"></div>
+                      </div>
 
-                    <!-- Duration Dropdown -->
-                    <div class="form-floating col-md-2">
-                      <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
-                        v-model="stage.duration">
-                        <option value="">Select years</option>
-                        <option value="1">1 Years</option>
-                        <option value="2">2 Years</option>
-                        <option value="3">3 Years</option>
-                        <option value="4">4 Years</option>
-                        <option value="5">5 Years</option>
-                        <option value="6">6 Years</option>
-                        <option value="7">7 Years</option>
-                        <option value="8">8 Years</option>
-                        <option value="9">9 Years</option>
-                        <option value="10">10 Years</option>
-                      </select>
-                      <label :for="`stageDuration${index}`">Duration</label>
-                      <div class="invalid-feedback" :class="`stageDuration${index}Err`"></div>
+                      <!-- Duration Dropdown -->
+                      <div class="form-floating col-md-2">
+                        <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
+                          v-model="stage.duration">
+                          <option value="">Select years</option>
+                          <option value="1">1 Years</option>
+                          <option value="2">2 Years</option>
+                          <option value="3">3 Years</option>
+                          <option value="4">4 Years</option>
+                          <option value="5">5 Years</option>
+                          <option value="6">6 Years</option>
+                          <option value="7">7 Years</option>
+                          <option value="8">8 Years</option>
+                          <option value="9">9 Years</option>
+                          <option value="10">10 Years</option>
+                        </select>
+                        <label :for="`stageDuration${index}`">Duration</label>
+                        <div class="invalid-feedback" :class="`stageDuration${index}Err`"></div>
+                      </div>
                     </div>
-                  </div>
                   </div>
                 </div>
               </div>
@@ -219,7 +220,9 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
+  mixins: [currencyMixin],
   props: ['companyName'],
   created() {
     this.companyId = sessionStorage.getItem('companyId');
@@ -229,7 +232,7 @@ export default {
   },
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
-    return {      
+    return {
       nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
@@ -238,7 +241,7 @@ export default {
       isLoading: false,
       isOpen: false,
       selectedGrowthType: 'constant',
-      selectedCurrency: 'CAD',
+      selectedFormat: 'USD',
       forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
       inputGrowthRate: null,
@@ -281,7 +284,7 @@ export default {
         const parsedSelections = JSON.parse(savedSelections);
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
         this.forecastDuration = parsedSelections.forecastDuration || 1;
-        this.selectedCurrency = parsedSelections.currency || 'CAD';
+        this.selectedFormat = parsedSelections.currency || 'USD';
 
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
@@ -305,6 +308,16 @@ export default {
         return value; // Default fallback
       }
     },
+    /*formatRevenue(value) {
+      switch (this.selectedFormat) {
+        case 'Millions':
+          return `${(value / 1e6).toFixed(2)}M`;
+        case 'Billions':
+          return `${(value / 1e9).toFixed(2)}B`;
+        default:
+          return this.formatCurrency(value);
+      }
+    },*/
     fetchHistoricalData() {
       const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
@@ -326,7 +339,7 @@ export default {
           return response.json();
         })
         .then(data => {
-          this.rawHistoricalData = data;          
+          this.rawHistoricalData = data;
           // Extract unique years from the annualValues of both items
           const years = [...new Set(data.flatMap(item => item.annualValues.map(av => av.year)))];
           years.sort(); // Sort years in ascending order
@@ -357,7 +370,7 @@ export default {
     },
 
     async submitInputs() {
-      try {        
+      try {
         // Prepare the forecast request
         this.isLoading = true;
         this.forecastedData = [];
@@ -371,7 +384,7 @@ export default {
           growthStages: this.stages,
           gradientStartYear: this.gradientStart,
           gradientEndYear: this.gradientEnd,
-          companyId: this.companyId, 
+          companyId: this.companyId,
           forecastItems: this.rawHistoricalData.map(item => {
             // Find the max year entry from annualValues
             const maxYearData = item.annualValues.reduce((max, current) => {
@@ -414,7 +427,7 @@ export default {
     async showPreview() {
       try {
 
-        this.isLoading = true;                
+        this.isLoading = true;
         const fetchForecastRequest = {
           companyId: this.companyId, // Replace with dynamic value if needed
           lineItemIds: [1, 66], // Replace with selected line item IDs          
@@ -453,12 +466,6 @@ export default {
       }
     }
     ,
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-CA', {
-        style: 'currency',
-        currency: this.selectedCurrency
-      }).format(value);
-    },
     calculateGrowth(previousRevenue, currentRevenue) {
       if (previousRevenue === 0) return 'N/A';
       const growth = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
@@ -1063,12 +1070,14 @@ button:disabled {
 .mt-20 {
   margin-top: 20px;
 }
+
 .stage-label {
-	padding-top:12px;
-	font-weight:500;
+  padding-top: 12px;
+  font-weight: 500;
 }
+
 .year-row {
-    background-color: #ECECEC;
-    font-weight: bold;
+  background-color: #ECECEC;
+  font-weight: bold;
 }
 </style>

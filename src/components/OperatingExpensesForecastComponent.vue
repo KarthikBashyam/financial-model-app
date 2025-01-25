@@ -4,11 +4,12 @@
         <div class="table-container">
             <div class="header">
                 <h4>{{ companyHeader }}'s Historical Trend of Operating Expenses</h4>
-                <div class="currency-selector">
-                    <label for="currency">Currency:</label>
-                    <select v-model="selectedCurrency" id="currency">
-                        <option value="CAD">CAD</option>
+                <div class="relative">
+                    <select v-model="selectedFormat" id="currency"
+                        class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
                         <option value="USD">USD</option>
+                        <option value="Millions">Millions</option>
+                        <option value="Billions">Billions</option>
                     </select>
                 </div>
             </div>
@@ -314,7 +315,9 @@
     </div>
 </template>
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
+    mixins: [currencyMixin],
     props: ['companyName'],
     created() {
         this.companyId = sessionStorage.getItem('companyId');
@@ -333,6 +336,7 @@ export default {
                 years: [],
                 items: [],
             },
+            selectedFormat: 'USD',
             expenseSections: [],
             forecastData: [],
             forecastItems: [],
@@ -370,13 +374,13 @@ export default {
         updateStages(sectionIndex) {
             const section = this.expenseSections[sectionIndex];
             if (section.numStages && section.numStages > 0) {
-              // Populate the stages array based on the selected number of stages
-              section.stages = Array.from({ length: section.numStages }, () => ({ rate: 0, duration: 0 }));
+                // Populate the stages array based on the selected number of stages
+                section.stages = Array.from({ length: section.numStages }, () => ({ rate: 0, duration: 0 }));
             } else {
-              // Clear stages if no valid selection is made
-              section.stages = [];
+                // Clear stages if no valid selection is made
+                section.stages = [];
             }
-          },
+        },
         loadUserSelections() {
             const savedSelections = sessionStorage.getItem('userSelections-operatingExpensesForecast');
             if (savedSelections) {

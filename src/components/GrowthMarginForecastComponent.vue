@@ -4,13 +4,13 @@
     <div class="table-container">
       <div class="header">
         <h4>{{ companyHeader }}'s Historical Gross Profit and Gross Margin (%)</h4>
-        <div class="currency-selector">
-          <label for="currency">Currency:</label>
-          <select v-model="selectedCurrency" id="currency">
-            <option value="CAD">CAD</option>
+        <div class="relative"> 
+          <select v-model="selectedFormat" id="currency" class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
             <option value="USD">USD</option>
+            <option value="Millions">Millions</option>
+            <option value="Billions">Billions</option>
           </select>
-        </div>
+        </div>         
       </div>
       <div class="revenue-table">
         <table>
@@ -25,14 +25,14 @@
             <tr>
               <td>Gross Profit</td>
               <td v-for="(revenue, index) in historicalData.revenues" :key="'revenue-' + index">
-                {{ formatCurrency(revenue) }}
+                {{ formatRevenue(revenue,selectedFormat) }}
               </td>
             </tr>
             <!-- Gross Margin Growth Row -->
             <tr>
               <td>Gross Margin (%)</td>
               <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
-                {{ growth }}%
+                {{ formatGrowthAsPercentage(growth) }}%
               </td>
             </tr>
           </tbody>
@@ -219,17 +219,20 @@
 </template>
 
 <script>
-export default {
+import { currencyMixin } from '@/mixins/currencyMixin';
+export default {  
+  mixins: [currencyMixin],
   props: ['companyName'],
   created() {
     this.companyId = sessionStorage.getItem('companyId');
     this.fetchHistoricalData();
     this.loadUserSelections();
     this.showPreview();
-  },
+  },  
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
+      selectedFormat: 'USD',
       nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
@@ -275,6 +278,9 @@ export default {
     });
   },
   methods: {
+    formatGrowthAsPercentage(value) {
+      return `${(value * 100).toFixed(1)}`;
+    },
     loadUserSelections() {
       const savedSelections = sessionStorage.getItem('userSelections-growthMarginForecast');
       if (savedSelections) {
@@ -282,6 +288,7 @@ export default {
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
         this.forecastDuration = parsedSelections.forecastDuration || 1;
         this.selectedCurrency = parsedSelections.currency || 'CAD';
+        this.selectedFormat = parsedSelections.currency || 'USD';
 
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
@@ -469,14 +476,6 @@ export default {
       } finally {
         this.isLoading = false;
       }
-    }
-
-    ,
-    formatCurrency(value) {
-      return new Intl.NumberFormat('en-CA', {
-        style: 'currency',
-        currency: this.selectedCurrency
-      }).format(value);
     },
     calculateGrowth(previousRevenue, currentRevenue) {
       if (previousRevenue === 0) return 'N/A';
