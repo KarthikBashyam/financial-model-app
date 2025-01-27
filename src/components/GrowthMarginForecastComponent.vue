@@ -4,13 +4,14 @@
     <div class="table-container">
       <div class="header">
         <h4>{{ companyHeader }}'s Historical Gross Profit and Gross Margin (%)</h4>
-        <div class="relative"> 
-          <select v-model="selectedFormat" id="currency" class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
+        <div class="relative">
+          <select v-model="selectedFormat" id="currency"
+            class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
             <option value="USD">USD</option>
             <option value="Millions">Millions</option>
             <option value="Billions">Billions</option>
           </select>
-        </div>         
+        </div>
       </div>
       <div class="revenue-table">
         <table>
@@ -25,7 +26,7 @@
             <tr>
               <td>Gross Profit</td>
               <td v-for="(revenue, index) in historicalData.revenues" :key="'revenue-' + index">
-                {{ formatRevenue(revenue,selectedFormat) }}
+                {{ formatRevenue(revenue, selectedFormat) }}
               </td>
             </tr>
             <!-- Gross Margin Growth Row -->
@@ -55,9 +56,9 @@
               <button :class="{ active: selectedGrowthType === 'constant' }" @click="changeGrowthType('constant')"
                 class="btn btn-secondary btn-radios">Constant</button>
               <button :class="{ active: selectedGrowthType === 'gradient' }" @click="changeGrowthType('gradient')"
-                class="btn btn-secondary btn-radio">Gradient</button>
+                class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">Gradient</button>
               <button :class="{ active: selectedGrowthType === 'staged' }" @click="changeGrowthType('staged')"
-                class="btn btn-secondary btn-radio">Staged</button>
+                class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">Staged</button>
             </div>
 
             <!-- Constant Growth -->
@@ -89,7 +90,7 @@
                       value="8" v-model="gradientEnd">
                     <label for="terminalYearRate">Terminal Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: {{ nextYear + forecastDuration - 1 }}</span>
+                    <span class="form-span">Year: {{ Number(nextYear) + Number(forecastDuration - 1) }}</span>
                     <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
                 </div>
@@ -111,7 +112,7 @@
                 <div class="form-row">
                   <div class="form-floating col-md-4">
                     <select id="numStages" name="numStages" class="form-select" v-model="numStages"
-                      @change="updateStages">
+                      @change="updateStages(numStages)">
                       <option value="">Select Stages</option>
                       <option value="1">1</option>
                       <option value="2">2</option>
@@ -153,9 +154,9 @@
                       <!-- Duration Dropdown -->
                       <div class="form-floating col-md-2">
                         <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
-                          v-model="stage.duration">
+                          v-model="stage.duration" @change="validateTotalDuration">
                           <option value="">Select years</option>
-                          <option value="1">1 Years</option>
+                          <option value="1">1 Year</option>
                           <option value="2">2 Years</option>
                           <option value="3">3 Years</option>
                           <option value="4">4 Years</option>
@@ -172,14 +173,13 @@
                     </div>
                   </div>
                 </div>
+                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
               </div>
-
-
             </div>
 
           </div>
         </div>
-        <button class="submit-button" @click="submitInputs">Submit Inputs</button>
+        <button class="submit-button" @click="submitInputs" :disabled="totalDurationExceeds">Submit Inputs</button>
       </div>
     </div>
     <div v-if="isLoading" class="spinner-container">
@@ -220,7 +220,7 @@
 
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
-export default {  
+export default {
   mixins: [currencyMixin],
   props: ['companyName'],
   created() {
@@ -228,7 +228,7 @@ export default {
     this.fetchHistoricalData();
     this.loadUserSelections();
     this.showPreview();
-  },  
+  },
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
@@ -262,7 +262,8 @@ export default {
         { rate: null, duration: null },
         { rate: null, duration: null },
         { rate: null, duration: null }
-      ]
+      ],
+      totalDurationExceeds: false
 
     };
   },
@@ -293,6 +294,7 @@ export default {
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
           this.gradientEnd = parsedSelections.gradientEnd || null;
+          this.forecastMode = parsedSelections.forecastMode || 'linear';
         } else if (this.selectedGrowthType === 'constant') {
           this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
         } else if (this.selectedGrowthType === 'staged') {
@@ -303,11 +305,9 @@ export default {
     },
     formatValueByType(value, type) {
       if (type === 'PERCENTAGES') {
-        return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+        return this.formatGrowthRate(value) + '%';
       } else if (type === 'DOLLARS') {
-        return value % 1 === 0
-          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
-          : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+        return this.formatRevenue(value, this.selectedFormat);
       } else {
         return value; // Default fallback
       }
@@ -489,15 +489,12 @@ export default {
       this.selectedGrowthType = type;
       this.growthType = type;
     },
-    updateStages() {
-      // Adjust the stages array to match the number of stages input by the user
-      if (this.numStages && this.numStages > 0) {
-        // Populate the stages array based on the selected number of stages
-        this.stages = Array.from({ length: this.numStages }, () => ({ rate: 0, duration: 0 }));
-      } else {
-        // Clear stages if no valid selection is made
-        this.stages = [];
-      }
+    updateStages(numStages) {
+      this.stages = Array.from({ length: numStages }, () => ({ rate: '', duration: '' }));
+    },
+    validateTotalDuration() {
+      const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
+      this.totalDurationExceeds = totalDuration > this.forecastDuration;
     },
     goBack() {
       this.$router.go(-1);
@@ -511,6 +508,7 @@ export default {
       if (this.selectedGrowthType === 'gradient') {
         selectedOptions.gradientStart = this.gradientStart;
         selectedOptions.gradientEnd = this.gradientEnd;
+        selectedOptions.forecastMode = this.forecastMode;
       } else if (this.selectedGrowthType === 'constant') {
         selectedOptions.inputGrowthRate = this.inputGrowthRate;
       } else if (this.selectedGrowthType === 'staged') {
@@ -526,6 +524,9 @@ export default {
     endYear() {
       return this.gradientStartYear + this.forecastDuration;
     },
+    isSingleYearForecast() {
+      return this.forecastDuration == 1;
+    },
     isInputsValid() {
       if (this.selectedGrowthType === 'gradient') {
         return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
@@ -540,6 +541,14 @@ export default {
       const stockInfoString = sessionStorage.getItem('selectedStock');
       const stockInfo = JSON.parse(stockInfoString);
       return `${stockInfo.companyName}`;
+    }
+  },
+  watch: {
+    stages: {
+      handler() {
+        this.validateTotalDuration();
+      },
+      deep: true
     }
   }
 };
@@ -926,66 +935,6 @@ button:disabled {
   align-items: center;
 }
 
-.custom-dropdown {
-  display: block;
-  width: 25%;
-  /* Full width */
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
-  /* Adjust padding for dropdown size */
-  font-family: Arial, sans-serif;
-  /* Replace with your desired font */
-  font-size: 16px;
-  /* Adjust for readability */
-  font-weight: 400;
-  /* Normal font weight */
-  line-height: 1.5;
-  color: #495057;
-  /* Standard text color */
-  background-color: #fff;
-  /* White background */
-  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"%3E%3Cpath fill="%23ccc" d="M2 0L0 2h4zm0 5L0 3h4z"/%3E'), none;
-  /* Dropdown arrow */
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  /* Position arrow */
-  background-size: 10px 10px;
-  /* Size arrow */
-  border: 1px solid #ced4da;
-  /* Light gray border */
-  border-radius: 0.25rem;
-  /* Rounded corners */
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
-  /* Subtle inner shadow */
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  /* Smooth transitions */
-  appearance: none;
-  /* Remove default styling for consistent look */
-
-  /* Focus state styling */
-  &:focus {
-    border-color: #80bdff;
-    /* Blue border on focus */
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    /* Glow effect on focus */
-  }
-
-  /* Styles for multiple selection or size attributes */
-  &[multiple],
-  &[size]:not([size="1"]) {
-    padding-right: 0.75rem;
-    /* Adjust padding */
-    background-image: none;
-    /* Remove arrow for multiple selection */
-  }
-}
-
-
-
-
-
-
-
 .year-input label {
   font-size: 1rem;
   color: #555;
@@ -1086,8 +1035,16 @@ button:disabled {
   padding-top: 12px;
   font-weight: 500;
 }
+
 .year-row {
-    background-color: #ECECEC; /* Adjust the background color as needed */
-    font-weight: bold;
+  background-color: #ECECEC;
+  /* Adjust the background color as needed */
+  font-weight: bold;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
 }
 </style>

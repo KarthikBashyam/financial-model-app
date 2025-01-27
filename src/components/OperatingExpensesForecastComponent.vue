@@ -54,11 +54,13 @@
                                 Constant
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'gradient' }"
-                                @click="changeGrowthType(index, 'gradient')" class="growth-type-button">
+                                @click="changeGrowthType(index, 'gradient')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">
                                 Gradient
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'staged' }"
-                                @click="changeGrowthType(index, 'staged')" class="growth-type-button">
+                                @click="changeGrowthType(index, 'staged')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">
                                 Staged
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'matchrevenuegrowth' }"
@@ -68,12 +70,7 @@
                         </div>
 
                         <!-- Constant Growth -->
-                        <!-- <div v-if="section.selectedGrowthType === 'constant'" class="growth-input child-container">
-                            <label>Input Growth Rate</label>
-                            <input type="number" v-model="section.inputGrowthRate" min="0" max="100"
-                                class="growth-rate-input"
-                                @input="updateInputGrowthRate(index, section.inputGrowthRate)" /> %
-                        </div> -->
+
                         <div v-if="section.selectedGrowthType === 'constant'" class="form-row mt-20" id="constantRow"
                             style="display: flex;">
                             <div class="form-floating col-md-3">
@@ -87,32 +84,7 @@
                         </div>
 
                         <!-- Gradient Growth -->
-                        <!-- <div v-if="section.selectedGrowthType === 'gradient'" class="gradient-growth-input">
-                            <p>From FY {{ gradientStartYear }} - {{ gradientStartYear + forecastDuration }}</p>
-                            <div class="input-group">
-                                <div class="year-input">
-                                    <label>{{ gradientStartYear }}e</label>
-                                    <input type="number" v-model="section.gradientStart" /> %
-                                </div>
-                                <div class="year-input">
-                                    <label>{{ gradientStartYear + forecastDuration }}e</label>
-                                    <input type="number" v-model="section.gradientEnd" /> %
-                                </div>
-                            </div>
-                            <div class="forecast-mode">
-                                <label>Mode of Forecast</label>
-                                <div class="forecast-buttons">
-                                    <button :class="{ active: section.forecastMode === 'linear' }"
-                                        @click="setForecastMode(index, 'linear')" class="growth-type-button">
-                                        Linear
-                                    </button>
-                                    <button :class="{ active: section.forecastMode === 'exponential' }"
-                                        @click="setForecastMode(index, 'exponential')" class="growth-type-button">
-                                        Exponential
-                                    </button>
-                                </div>
-                            </div>
-                        </div> -->
+
                         <div v-if="section.selectedGrowthType === 'gradient'">
                             <!-- Row for Gradient Input -->
                             <div class="row mt-20 g-4">
@@ -133,7 +105,7 @@
                                         <label for="terminalYearRate">Terminal Year Rate</label>
                                         <span class="yRateTag">%</span>
                                         <span class="form-span">
-                                            Year: {{ nextYear + forecastDuration - 1 }}
+                                            Year: {{ Number(nextYear) + Number(forecastDuration - 1) }}
                                         </span>
                                         <div class="invalid-feedback"></div>
                                     </div>
@@ -162,35 +134,7 @@
 
 
                         <!-- Staged Growth -->
-                        <!-- <div v-if="section.selectedGrowthType === 'staged'" class="staged-growth-input">
-                            <label>Number of Growth Stages</label>
-                            <input type="number" v-model="section.numStages" min="1" @input="updateStages(index)" />
-                            Stages
 
-                            <div class="stage-container">
-                                <table class="staged-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Stage</th>
-                                            <th>Growth Rate (%)</th>
-                                            <th>Duration (Years)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="(stage, sIndex) in section.stages"
-                                            :key="stage.rate + '-' + stage.duration">
-                                            <td>{{ sIndex + 1 }}</td>
-                                            <td>
-                                                <input type="number" v-model="stage.rate" />
-                                            </td>
-                                            <td>
-                                                <input type="number" v-model="stage.duration" />
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div> -->
                         <div v-if="section.selectedGrowthType === 'staged'" class="staged-growth-input">
                             <div class="row" id="stagedRow" style="display: flex;">
                                 <div class="form-row">
@@ -261,13 +205,16 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div v-if="section.totalDurationExceeds" class="error-message">Exceeds max limit</div>
+
                             </div>
                         </div>
 
                     </div>
                 </div>
 
-                <button class="submit-button" @click="submitInputs">Submit Inputs</button>
+                <button class="submit-button"  @click="submitInputs">Submit
+                    Inputs</button>
             </div>
         </div>
 
@@ -310,7 +257,7 @@
 
         <div class="actions">
             <button @click="goBack">Back</button>
-            <button @click="goForward" :disabled="!isInputsValid">Continue</button>
+            <button @click="goForward">Continue</button>
         </div>
     </div>
 </template>
@@ -344,9 +291,13 @@ export default {
             selectedCurrency: 'CAD',
             isLoading: false,
             companyId: sessionStorage.getItem('companyId'),
+            anySectionExceedsMaxLimit: false,
         };
     },
     computed: {
+        isSingleYearForecast() {
+            return this.forecastDuration == 1;
+        },
         isInputsValid() {
             // Validate all expense sections
             return this.expenseSections.every(section => {
@@ -371,6 +322,20 @@ export default {
     }
     ,
     methods: {
+        setForecastMode(sectionIndex, mode) {
+            this.expenseSections[sectionIndex].forecastMode = mode;
+        },
+        validateTotalDuration(sectionIndex) {
+            const section = this.expenseSections[sectionIndex];
+            let totalDuration = 0;
+            section.stages.forEach(stage => {
+                const duration = parseInt(stage.duration || 0);
+                totalDuration += duration;
+                stage.exceedsMaxLimit = totalDuration > this.forecastDuration;
+            });
+            section.totalDurationExceeds = section.stages.some(stage => stage.exceedsMaxLimit);
+            this.anySectionExceedsMaxLimit = this.expenseSections.some(section => section.totalDurationExceeds);
+        },
         updateStages(sectionIndex) {
             const section = this.expenseSections[sectionIndex];
             if (section.numStages && section.numStages > 0) {
@@ -385,6 +350,7 @@ export default {
             const savedSelections = sessionStorage.getItem('userSelections-operatingExpensesForecast');
             if (savedSelections) {
                 const parsedSelections = JSON.parse(savedSelections);
+                this.selectedFormat = parsedSelections.currency || 'USD';
                 this.expenseSections.forEach((section) => {
                     const savedSection = parsedSelections.find((s) => s.name === section.name);
                     if (savedSection) {
@@ -394,6 +360,7 @@ export default {
                         if (savedSection.growthType === 'gradient') {
                             section.gradientStart = savedSection.gradientStart || 0;
                             section.gradientEnd = savedSection.gradientEnd || 0;
+                            section.forecastMode = savedSection.forecastMode || 'linear';
                         } else if (savedSection.growthType === 'constant') {
                             section.inputGrowthRate = savedSection.inputGrowthRate || 0;
                         } else if (savedSection.growthType === 'staged') {
@@ -415,6 +382,8 @@ export default {
                 if (section.selectedGrowthType === 'gradient') {
                     option.gradientStart = section.gradientStart;
                     option.gradientEnd = section.gradientEnd;
+                    option.forecastMode = section.forecastMode;
+
                 } else if (section.selectedGrowthType === 'constant') {
                     option.inputGrowthRate = section.inputGrowthRate;
                 } else if (section.selectedGrowthType === 'staged') {
@@ -481,11 +450,9 @@ export default {
         },
         formatValueByType(value, type) {
             if (type === 'PERCENTAGES') {
-                return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+                return this.formatGrowthRate(value) + '%';
             } else if (type === 'DOLLARS') {
-                return value % 1 === 0
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
-                    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+                return this.formatRevenue(value, this.selectedFormat);
             } else {
                 return value; // Default fallback
             }
@@ -639,7 +606,7 @@ export default {
                         forecastItems.push({
                             lineItemId: growthItem.lineItemId,
                             internalAlias: growthItem.internalAlias,
-                            unitType: growthItem.unitType,
+                             unitType: growthItem.unitType,
                             historicalValues: [mostRecentGrowthValue], // Include only the most recent year's value
                         });
                     }
@@ -745,6 +712,16 @@ export default {
         this.initializePage();
         this.loadUserSelections();
     },
+    watch: {
+        expenseSections: {
+            handler() {
+                this.expenseSections.forEach((section, index) => {
+                    this.validateTotalDuration(index);
+                });
+            },
+            deep: true
+        }
+    }
 };
 </script>
 
@@ -819,8 +796,9 @@ button {
 }
 
 button:disabled {
-    background-color: #ccc;
+    background-color: #a0a0a0;
     cursor: not-allowed;
+    transform: none;
 }
 
 .currency-selector {
@@ -1129,5 +1107,11 @@ button:disabled {
     font-weight: 600;
     line-height: 22px;
     padding: .375rem .75rem;
+}
+
+.error-message {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
 }
 </style>

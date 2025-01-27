@@ -4,13 +4,15 @@
         <div class="table-container">
             <div class="header">
                 <h4>{{ companyHeader }}'s Historical Trend of Capital Expenditure</h4>
-                <div class="currency-selector">
-                    <label for="currency">Currency:</label>
-                    <select v-model="selectedCurrency" id="currency">
-                        <option value="CAD">CAD</option>
+                <div class="relative">
+                    <select v-model="selectedFormat" id="currency"
+                        class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
                         <option value="USD">USD</option>
+                        <option value="Millions">Millions</option>
+                        <option value="Billions">Billions</option>
                     </select>
                 </div>
+
             </div>
             <div class="revenue-table">
                 <table>
@@ -25,14 +27,14 @@
                         <tr>
                             <td>Capital Expenditure</td>
                             <td v-for="(revenue, index) in historicalData.revenues" :key="'revenue-' + index">
-                                {{ formatCurrency(revenue) }}
+                                {{ formatRevenue(revenue, selectedFormat) }}
                             </td>
                         </tr>
                         <!-- Capital Spending Growth Row -->
                         <tr>
                             <td>Capital Expenditure Growth</td>
                             <td v-for="(growth, index) in historicalData.growthRates" :key="'growth-' + index">
-                                {{ growth ? growth + '%' : 'N/A' }}
+                                {{ formatGrowthRate(growth) }}%
                             </td>
                         </tr>
                     </tbody>
@@ -54,10 +56,11 @@
                                 @click="changeGrowthType('constant')"
                                 class="btn btn-secondary btn-radios">Constant</button>
                             <button :class="{ active: selectedGrowthType === 'gradient' }"
-                                @click="changeGrowthType('gradient')"
-                                class="btn btn-secondary btn-radio">Gradient</button>
+                                @click="changeGrowthType('gradient')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">Gradient</button>
                             <button :class="{ active: selectedGrowthType === 'staged' }"
-                                @click="changeGrowthType('staged')" class="btn btn-secondary btn-radio">Staged</button>
+                                @click="changeGrowthType('staged')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">Staged</button>
                             <button :class="{ active: selectedGrowthType === 'matchrevenuegrowth' }"
                                 @click="changeGrowthType('matchrevenuegrowth')"
                                 class="btn btn-secondary btn-radio">Match Revenue Growth</button>
@@ -151,9 +154,10 @@
                                             <!-- Duration Dropdown -->
                                             <div class="form-floating col-md-2">
                                                 <select :id="`stageDuration${index}`" name="stageDuration[]"
-                                                    class="form-select duration" v-model="stage.duration">
+                                                    class="form-select duration" v-model="stage.duration"
+                                                    @change="validateTotalDuration">
                                                     <option value="">Select years</option>
-                                                    <option value="1">1 Years</option>
+                                                    <option value=" 1">1 Years</option>
                                                     <option value="2">2 Years</option>
                                                     <option value="3">3 Years</option>
                                                     <option value="4">4 Years</option>
@@ -170,6 +174,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
                             </div>
                         </div>
 
@@ -231,8 +236,10 @@
 </template>
 
 <script>
+import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
     props: ['companyName'],
+    mixins: [currencyMixin],
     created() {
         this.companyId = sessionStorage.getItem('companyId');
         this.fetchHistoricalData();
@@ -246,6 +253,7 @@ export default {
             forecastItems: [],
             isLoading: false,
             isOpen: false,
+            selectedFormat: 'USD',
             selectedGrowthType: 'constant', // Initialize selectedGrowthType
             numStages: 1, // Initialize numStages
             stages: [
@@ -288,13 +296,15 @@ export default {
         });
     },
     methods: {
+        validateTotalDuration() {
+            const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
+            this.totalDurationExceeds = totalDuration > this.forecastDuration;
+        },
         formatValueByType(value, type) {
             if (type === 'PERCENTAGES') {
-                return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+                return this.formatGrowthRate(value) + '%';
             } else if (type === 'DOLLARS') {
-                return value % 1 === 0
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
-                    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+                return this.formatRevenue(value, this.selectedFormat);
             } else {
                 return value; // Default fallback
             }
@@ -320,6 +330,7 @@ export default {
                 if (this.selectedGrowthType === 'gradient') {
                     this.gradientStart = parsedSelections.gradientStart || null;
                     this.gradientEnd = parsedSelections.gradientEnd || null;
+                    this.forecastMode = parsedSelections.forecastMode || 'linear';
                 } else if (this.selectedGrowthType === 'constant') {
                     this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
                 } else if (this.selectedGrowthType === 'staged') {
@@ -337,6 +348,7 @@ export default {
             if (this.selectedGrowthType === 'gradient') {
                 selectedOptions.gradientStart = this.gradientStart;
                 selectedOptions.gradientEnd = this.gradientEnd;
+                selectedOptions.forecastMode = this.forecastMode;
             } else if (this.selectedGrowthType === 'constant') {
                 selectedOptions.inputGrowthRate = this.inputGrowthRate;
             } else if (this.selectedGrowthType === 'staged') {
@@ -547,6 +559,9 @@ export default {
         }
     },
     computed: {
+        isSingleYearForecast() {
+            return this.forecastDuration == 1;
+        },
         endYear() {
             return this.gradientStartYear + this.forecastDuration;
         },
@@ -558,7 +573,7 @@ export default {
                 return this.gradientStart > 0 && this.gradientEnd > 0 && this.forecastDuration > 0;
             } else if (this.selectedGrowthType === 'staged') {
                 return this.numStages > 0 && this.stages.every(stage => stage.rate > 0 && stage.duration > 0) && this.forecastDuration > 0;
-            } else if (this.selectedGrowthType === 'matchrevenuegrowth') {                
+            } else if (this.selectedGrowthType === 'matchrevenuegrowth') {
                 return this.forecastDuration > 0; // Example validation
             }
             return false; // Default to invalid for other types
@@ -977,8 +992,17 @@ button:disabled {
 .form-control.is-invalid+.invalid-feedback {
     display: block;
 }
+
 .year-row {
-    background-color: #ECECEC; /* Adjust the background color as needed */
+    background-color: #ECECEC;
+    /* Adjust the background color as needed */
     font-weight: bold;
+}
+
+
+.error-message {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
 }
 </style>

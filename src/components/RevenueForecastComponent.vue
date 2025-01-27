@@ -54,11 +54,11 @@
             <label><b>Type of Growth</b></label>
             <div class="growth-buttons">
               <button :class="{ active: selectedGrowthType === 'constant' }" @click="changeGrowthType('constant')"
-                class="btn btn-secondary btn-radios" >Constant</button>
+                class="btn btn-secondary btn-radios">Constant</button>
               <button :class="{ active: selectedGrowthType === 'gradient' }" @click="changeGrowthType('gradient')"
-                class="btn btn-secondary btn-radio">Gradient</button>
+                class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">Gradient</button>
               <button :class="{ active: selectedGrowthType === 'staged' }" @click="changeGrowthType('staged')"
-                class="btn btn-secondary btn-radio">Staged</button>
+                class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">Staged</button>
             </div>
 
             <!-- Constant Growth -->
@@ -90,7 +90,7 @@
                       value="8" v-model="gradientEnd">
                     <label for="terminalYearRate">Terminal Year Rate</label>
                     <span class="yRateTag">%</span>
-                    <span class="form-span">Year: {{ nextYear + forecastDuration - 1 }}</span>
+                    <span class="form-span">Year: {{ Number(nextYear) + Number(forecastDuration) - 1 }}</span>
                     <div class="invalid-feedback terminalYearRateErr"></div>
                   </div>
                 </div>
@@ -100,7 +100,7 @@
               <div class="forecast-mode">
                 <div class="forecast-buttons">
                   <button :class="{ active: forecastMode === 'linear' }"
-                    @click="forecastMode = 'linear'" >Linear</button>
+                    @click="forecastMode = 'linear'">Linear</button>
                   <button :class="{ active: forecastMode === 'exponential' }"
                     @click="forecastMode = 'exponential'">Exponential</button>
                 </div>
@@ -154,9 +154,9 @@
                       <!-- Duration Dropdown -->
                       <div class="form-floating col-md-2">
                         <select :id="`stageDuration${index}`" name="stageDuration[]" class="form-select duration"
-                          v-model="stage.duration" @change="validateTotalDuration">
+                          v-model="stage.duration">
                           <option value="">Select years</option>
-                          <option value="1">1 Year</option>
+                          <option value="1">1 Years</option>
                           <option value="2">2 Years</option>
                           <option value="3">3 Years</option>
                           <option value="4">4 Years</option>
@@ -173,13 +173,13 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
               </div>
+              <div v-if="totalDurationExceeds" class="error-message">Exceeds Max limit</div>
             </div>
 
           </div>
         </div>
-        <button :disabled="totalDurationExceeds" class="btn btn-primary mt-4">Submit</button>
+        <button class="submit-button" @click="submitInputs">Submit Inputs</button>
       </div>
     </div>
     <div v-if="isLoading" class="spinner-container">
@@ -221,8 +221,8 @@
 <script>
 import { currencyMixin } from '@/mixins/currencyMixin';
 export default {
-  mixins: [currencyMixin],
   props: ['companyName'],
+  mixins: [currencyMixin],
   created() {
     this.companyId = sessionStorage.getItem('companyId');
     this.fetchHistoricalData();
@@ -232,6 +232,7 @@ export default {
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
+
       nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
@@ -241,7 +242,7 @@ export default {
       isOpen: false,
       selectedGrowthType: 'constant',
       selectedFormat: 'USD',
-      forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 3, // Use sessionStorage value or fallback to 3
+      forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 0, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
       inputGrowthRate: null,
       numStages: null,
@@ -262,7 +263,7 @@ export default {
         { rate: null, duration: null },
         { rate: null, duration: null }
       ],
-      totalDurationExceeds: false
+      totalDurationExceeds: false,
 
     };
   },
@@ -289,6 +290,7 @@ export default {
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
           this.gradientEnd = parsedSelections.gradientEnd || null;
+          this.forecastMode = parsedSelections.forecastMode || '';
         } else if (this.selectedGrowthType === 'constant') {
           this.inputGrowthRate = parsedSelections.inputGrowthRate || 0;
         } else if (this.selectedGrowthType === 'staged') {
@@ -299,15 +301,14 @@ export default {
     },
     formatValueByType(value, type) {
       if (type === 'PERCENTAGES') {
-        return value % 1 === 0 ? value + '%' : value.toFixed(2) + '%';
+        return this.formatGrowthRate(value) + '%';
       } else if (type === 'DOLLARS') {
-        return value % 1 === 0
-          ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value)
-          : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+        return this.formatRevenue(value, this.selectedFormat);
       } else {
         return value; // Default fallback
       }
-    },    
+    },
+
     fetchHistoricalData() {
       const url = `${process.env.VUE_APP_PI_APP_SERVICE_BASE_URL}/api/lineItems/historical`;
       const requestBody = {
@@ -469,11 +470,14 @@ export default {
       this.growthType = type;
     },
     updateStages() {
-      this.stages = Array.from({ length: this.numStages }, () => ({ rate: '', duration: '' }));
-    },
-    validateTotalDuration() {
-      const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
-      this.totalDurationExceeds = totalDuration > this.forecastDuration;
+      // Adjust the stages array to match the number of stages input by the user
+      if (this.numStages && this.numStages > 0) {
+        // Populate the stages array based on the selected number of stages
+        this.stages = Array.from({ length: this.numStages }, () => ({ rate: 0, duration: 0 }));
+      } else {
+        // Clear stages if no valid selection is made
+        this.stages = [];
+      }
     },
     goBack() {
       this.$router.go(-1);
@@ -487,6 +491,7 @@ export default {
       if (this.selectedGrowthType === 'gradient') {
         selectedOptions.gradientStart = this.gradientStart;
         selectedOptions.gradientEnd = this.gradientEnd;
+        selectedOptions.forecastMode = this.forecastMode;
       } else if (this.selectedGrowthType === 'constant') {
         selectedOptions.inputGrowthRate = this.inputGrowthRate;
       } else if (this.selectedGrowthType === 'staged') {
@@ -496,26 +501,10 @@ export default {
 
       sessionStorage.setItem('userSelections-revenueForecast', JSON.stringify(selectedOptions));
       this.$router.push({ name: 'GrowthMarginForecast' });
-    }
-  },
-  computed: {
-    endYear() {
-      return this.gradientStartYear + this.forecastDuration;
     },
-    isInputsValid() {
-      if (this.selectedGrowthType === 'gradient') {
-        return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
-      } else if (this.selectedGrowthType === 'constant') {
-        return this.inputGrowthRate > 0 && this.forecastDuration > 0;
-      } else if (this.selectedGrowthType === 'staged') {
-        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0;
-      }
-      return false;
-    },
-    companyHeader() {
-      const stockInfoString = sessionStorage.getItem('selectedStock');
-      const stockInfo = JSON.parse(stockInfoString);
-      return `${stockInfo.companyName}`;
+    validateTotalDuration() {
+      const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
+      this.totalDurationExceeds = totalDuration > this.forecastDuration;
     }
   },
   watch: {
@@ -525,22 +514,41 @@ export default {
       },
       deep: true
     }
+  },
+  computed: {
+    isSingleYearForecast() {
+      return this.forecastDuration == 1;
+    },
+    endYear() {
+      return this.gradientStartYear + this.forecastDuration;
+    },
+    isInputsValid() {
+      if (this.selectedGrowthType === 'gradient') {
+        return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'constant') {
+        return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+      } else if (this.selectedGrowthType === 'staged') {
+        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds;
+      }
+      return false;
+    },
+    companyHeader() {
+      const stockInfoString = sessionStorage.getItem('selectedStock');
+      const stockInfo = JSON.parse(stockInfoString);
+      return `${stockInfo.companyName}`;
+    }
   }
 };
 </script>
 
 <style scoped>
 .table-container {
-  padding: 20px;
-  margin: 20px 0;
+  padding: 24px;
+  margin: 24px 0;
   background-color: #ffffff;
-  /* White background for the table container */
-  border: 1px solid #ccc;
-  /* Light grey border */
-  border-radius: 8px;
-  /* Rounded corners */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* Subtle shadow */
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .revenue-forecast {
@@ -563,15 +571,21 @@ export default {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-family: 'Roboto', sans-serif;
 }
 
 th,
 td {
-  padding: 10px;
+  padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 600;
 }
 
 .forecast-assumptions {
@@ -591,17 +605,24 @@ td {
 }
 
 button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  background-color: #004488;
+  background-color: #0056b3;
   color: #fff;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background-color: #004494;
+  transform: translateY(-1px);
 }
 
 button:disabled {
-  background-color: #ccc;
+  background-color: #a0a0a0;
   cursor: not-allowed;
+  transform: none;
 }
 
 .currency-selector {
@@ -610,24 +631,25 @@ button:disabled {
 }
 
 .growth-buttons button {
-  background-color: #e0e7ff;
-  border: none;
-  color: #000;
+  background-color: #f0f4ff;
+  border: 1px solid #d0d9ff;
+  color: #0056b3;
   padding: 10px 20px;
   border-radius: 25px;
-  /* This makes the buttons rounded */
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .growth-buttons button.active {
-  background-color: #4a90e2;
+  background-color: #0056b3;
+  border-color: #0056b3;
   color: #fff;
 }
 
 .growth-buttons button:hover {
-  background-color: #4a90e2;
-  color: #fff;
+  background-color: #d0d9ff;
+  color: #0056b3;
 }
 
 .forecast-duration {
@@ -878,17 +900,14 @@ button:disabled {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
 
-  100% {
-    transform: rotate(360deg);
-  }
-}
 
 .gradient-growth-input {
+  margin-top: 20px;
+  padding: 15px;
+}
+
+gradient-growth-input {
   margin-top: 20px;
   padding: 15px;
   background-color: #f9f9f9;
@@ -1012,8 +1031,27 @@ button:disabled {
 }
 
 .year-row {
-  background-color: #ECECEC;
+  background-color: #f0f0f0;
   font-weight: bold;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+  outline: none;
+  border-color: #0056b3;
+  box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.1);
 }
 
 .error-message {

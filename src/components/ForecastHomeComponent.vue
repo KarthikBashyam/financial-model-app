@@ -3,7 +3,10 @@
     <aside class="sidebar">
       <div class="sidebar-company">{{ companyName }}</div>
       <nav class="sidebar-menu">
-        <div class="progress-line"></div>
+        <div class="progress-container">
+          <div class="progress-line"></div>
+          <div class="progress-line-fill" :style="{ height: `${progressHeight}%` }"></div>
+        </div>
         <div
           v-for="(link, index) in navigationLinks"
           :key="link.to"
@@ -16,11 +19,7 @@
         >
           <div class="link-content">
             <div class="step-indicator">
-              <div class="step-circle">
-                <svg v-if="isCompleted(index)" class="check-icon" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-              </div>
+              <div class="step-circle"></div>
               <div class="step-label">{{ index + 1 }}</div>
             </div>
             <span class="link-text">{{ link.text }}</span>
@@ -60,7 +59,7 @@ export default {
   },
   methods: {
     isCompleted(index) {
-      return index < this.completedSteps;
+      return index <= this.completedSteps;
     },
     isActive(route) {
       return this.$route.path.includes(route);
@@ -71,8 +70,15 @@ export default {
     updateCurrentStep() {
       const currentRouteIndex = this.navigationLinks.findIndex(link => this.$route.path.includes(link.to));
       if (currentRouteIndex !== -1) {
-        this.currentStep = Math.max(this.currentStep, currentRouteIndex);
+        this.currentStep = currentRouteIndex;
+        this.completedSteps = currentRouteIndex;
       }
+    }
+  },
+  computed: {
+    progressHeight() {
+      const totalSteps = this.navigationLinks.length - 1;
+      return (this.completedSteps / totalSteps) * 100;
     }
   },
   watch: {
@@ -120,16 +126,32 @@ export default {
   flex-direction: column;
   flex-grow: 1;
   position: relative;
+  overflow: hidden;
+}
+
+.progress-container {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  z-index: 1;
 }
 
 .progress-line {
   position: absolute;
-  left: 20px;
-  top: 25px;
-  bottom: 25px;
-  width: 2px;
+  top: 0;
+  bottom: 0;
+  width: 100%;
   background-color: #e0e0e0;
-  z-index: 1;
+}
+
+.progress-line-fill {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  background-color: #004488;
+  transition: height 0.3s ease;
 }
 
 .link {
@@ -142,6 +164,14 @@ export default {
   transition: all 0.3s ease;
   position: relative;
   z-index: 2;
+}
+
+.link.active {
+  color: #004488;
+}
+
+.link.completed {
+  color: #004488;
 }
 
 .link-content {
@@ -163,9 +193,6 @@ export default {
   border-radius: 50%;
   background-color: #e0e0e0;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .step-label {
@@ -182,23 +209,17 @@ export default {
   background-color: #004488;
 }
 
-.link.completed::before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  top: -17px;
-  height: 25px;
-  width: 2px;
-  background-color: #004488;
-  z-index: 1;
-}
-
 .link.active .step-circle {
-  background-color: #7fa8d7;
+  background-color: #004488;
   box-shadow: 0 0 0 4px rgba(0, 68, 136, 0.2);
 }
 
 .link.active .link-text {
+  color: #004488;
+  font-weight: 600;
+}
+
+.link.completed .link-text {
   color: #004488;
   font-weight: 600;
 }
@@ -215,12 +236,7 @@ export default {
 .link-text {
   font-weight: 500;
   transition: all 0.3s ease;
-}
-
-.check-icon {
-  width: 20px;
-  height: 20px;
-  color: #ffffff;
+  flex-grow: 1;
 }
 
 .content {
@@ -244,17 +260,13 @@ export default {
     width: 100%;
   }
 
-  .progress-line {
+  .progress-container {
     display: none;
   }
 
   .link {
     padding-left: 10px;
     margin-bottom: 10px;
-  }
-
-  .link.completed::before {
-    display: none;
   }
 
   .step-indicator {

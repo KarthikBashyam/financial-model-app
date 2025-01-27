@@ -34,7 +34,8 @@
             </div>
             <div>
               <span class="text-muted me-2">CURRENCY: USD</span>
-              <select v-model="selectedFormat" class="form-select form-select-sm d-inline-block w-auto">                
+              <select v-model="selectedFormat" class="form-select form-select-sm d-inline-block w-auto">   
+                <option value="USD">USD</option>             
                 <option value="Millions">Millions</option>
                 <option value="Billions">Billions</option>
               </select>
@@ -86,23 +87,23 @@
           <!-- Non-tabular Values -->
           <div class="non-tabular-values mt-4">
             <div class="value-item">
-              <span class="label">Terminal EV:</span>
+              <span class="label">Terminal EV</span>
               <span class="value">{{ formatCurrency(terminalEV) }}</span>
             </div>
             <div class="value-item">
-              <span class="label">PV of Terminal EV:</span>
+              <span class="label">PV of Terminal EV</span>
               <span class="value">{{ formatCurrency(presentValueOfTerminalEV) }}</span>
             </div>
             <div class="value-item">
-              <span class="label">Intrinsic Enterprise Value:</span>
+              <span class="label">Intrinsic Enterprise Value</span>
               <span class="value ">{{ formatCurrency(intrinsicEnterpriseValue) }}</span>
             </div>
             <div class="value-item">
-              <span class="label">Intrinsic Equity Value:</span>
+              <span class="label">Intrinsic Equity Value</span>
               <span class="value">{{ formatCurrency(intrinsicEquityValue) }}</span>
             </div>
             <div class="value-item">
-              <span class="label">Intrinsic Value (per share):</span>
+              <span class="label">Intrinsic Value (per share)</span>
               <span class="value">{{ formatCurrency(intrinsicValue) }}</span>
             </div>
           </div>
@@ -114,10 +115,13 @@
 
 <script>
 import { ref } from 'vue';
+import { currencyMixin } from '@/mixins/currencyMixin';
 
 export default {
   data() {
     return {
+      mixins: [currencyMixin],
+      selectedFormat: 'USD',
       intrinsicValue: '',
       loading: true,
       companyId: '',
@@ -129,7 +133,7 @@ export default {
       forecastedNWCCosts: {},
       forecastedFCFFCosts: {},
       presentValueOfFCFFMap: {},
-      isCalculationsVisible: ref(true),
+      isCalculationsVisible: ref(false),
       terminalEV: 0,
       presentValueOfTerminalEV: 0,
       intrinsicEnterpriseValue: 0,

@@ -29,14 +29,6 @@
                     </div>
                     <span>Years</span>
                 </div>
-                <!-- <div class="input-group">
-                    <label for="cost-of-capital">Cost of Capital</label>
-                    <div class="input-with-symbol">
-                        <input type="number" id="cost-of-capital" v-model.number="costOfCapital" step="0.1" min="0"
-                            placeholder="Enter cost of capital" />
-                        <span class="symbol">%</span>
-                    </div>
-                </div> -->
             </div>
 
             <button :disabled="!selectedModel" class="continue-button" @click="proceedToNextStep">
@@ -44,27 +36,7 @@
             </button>
         </div>
     </div>
-    <div class="select-valuation-model-container">
-        <div class="header">
-            <h2>Select Valuation Model</h2>
-            <div class="forecast-duration">
-                <span>{{ forecastDuration ? `${forecastDuration} Years` : "" }}</span>
-            </div>
-        </div>
-        <div class="input-group">
-            <label for="forecast-duration">Forecast Duration (DCF)</label>
-            <div class="dual-input-container">
-                <!-- Text Box for Input -->
-                <input type="text" id="forecast-duration" v-model="forecastDurationInput"
-                    placeholder="Enter forecast duration (years)" @blur="validateForecastDuration" />
-                <!-- Slider for Input -->
-                <input type="range" min="1" max="10" step="1" v-model="forecastDuration"
-                    @input="syncTextInputWithSlider" />
-            </div>
-            <span class="years-label">Years</span>
-        </div>
-        <!-- Other content -->
-    </div>
+    
 </template>
 
 <script>
