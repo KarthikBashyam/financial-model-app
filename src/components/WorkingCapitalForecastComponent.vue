@@ -304,6 +304,8 @@ export default {
                     return section.gradientStart > 0 && section.gradientEnd > 0;
                 } else if (section.selectedGrowthType === 'staged') {
                     return section.stages.every(stage => stage.rate > 0 && stage.duration > 0);
+                }  else if (this.selectedGrowthType === 'matchrevenuegrowth') {
+                    return this.forecastDuration > 0; // Example validation
                 }
                 return true; // Default to valid for other types
             });
@@ -782,17 +784,23 @@ td {
 }
 
 button {
-    padding: 10px 20px;
-    border: none;
-    background-color: #004488;
-    color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 12px 24px;
+  border: none;
+  background-color: #0056b3;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+button:hover {
+  background-color: #004494;
+  transform: translateY(-1px);
 }
 
 button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+  transform: none;
 }
 
 
@@ -802,25 +810,27 @@ button:disabled {
 }
 
 .growth-buttons button {
-    background-color: #e0e7ff;
-    border: none;
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 25px;
-    /* This makes the buttons rounded */
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  background-color: #f0f4ff;
+  border: 1px solid #d0d9ff;
+  color: #0056b3;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .growth-buttons button.active {
-    background-color: #4a90e2;
-    color: #fff;
+  background-color: #0056b3;
+  border-color: #0056b3;
+  color: #fff;
 }
 
 .growth-buttons button:hover {
-    background-color: #4a90e2;
-    color: #fff;
+  background-color: #d0d9ff;
+  color: #0056b3;
 }
+
 
 .forecast-duration {
     display: flex;
@@ -1102,6 +1112,10 @@ button:disabled {
     font-weight: 600;
     line-height: 22px;
     padding: .375rem .75rem;
+}
+
+.growth-buttons button {
+  margin-right: 10px; /* Add spacing between buttons */
 }
 
 .error-message {

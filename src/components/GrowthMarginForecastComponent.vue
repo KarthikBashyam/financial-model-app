@@ -7,7 +7,7 @@
         <div class="relative">
           <select v-model="selectedFormat" id="currency"
             class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
-            <option value="USD">USD</option>
+            <option value="Units">Units</option>
             <option value="Millions">Millions</option>
             <option value="Billions">Billions</option>
           </select>
@@ -232,7 +232,7 @@ export default {
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
-      selectedFormat: 'USD',
+      selectedFormat: 'Units',
       nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
@@ -289,7 +289,7 @@ export default {
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
         this.forecastDuration = parsedSelections.forecastDuration || 1;
         this.selectedCurrency = parsedSelections.currency || 'CAD';
-        this.selectedFormat = parsedSelections.currency || 'USD';
+        this.selectedFormat = parsedSelections.currency || 'Units';
 
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
@@ -616,18 +616,25 @@ td {
 }
 
 button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border: none;
-  background-color: #004488;
+  background-color: #0056b3;
   color: #fff;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+button:hover {
+  background-color: #004494;
+  transform: translateY(-1px);
 }
 
 button:disabled {
-  background-color: #ccc;
+  background-color: #a0a0a0;
   cursor: not-allowed;
+  transform: none;
 }
+
 
 .currency-selector {
   display: flex;
@@ -635,25 +642,27 @@ button:disabled {
 }
 
 .growth-buttons button {
-  background-color: #e0e7ff;
-  border: none;
-  color: #000;
+  background-color: #f0f4ff;
+  border: 1px solid #d0d9ff;
+  color: #0056b3;
   padding: 10px 20px;
   border-radius: 25px;
-  /* This makes the buttons rounded */
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .growth-buttons button.active {
-  background-color: #4a90e2;
+  background-color: #0056b3;
+  border-color: #0056b3;
   color: #fff;
 }
 
 .growth-buttons button:hover {
-  background-color: #4a90e2;
-  color: #fff;
+  background-color: #d0d9ff;
+  color: #0056b3;
 }
+
 
 .forecast-duration {
   display: flex;

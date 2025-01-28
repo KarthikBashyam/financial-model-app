@@ -7,7 +7,7 @@
                 <div class="relative">
                     <select v-model="selectedFormat" id="currency"
                         class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
-                        <option value="USD">USD</option>
+                        <option value="Units">Units</option>
                         <option value="Millions">Millions</option>
                         <option value="Billions">Billions</option>
                     </select>
@@ -50,7 +50,7 @@
                         <label>Type of Forecast Method</label>
                         <div class="growth-buttons mt-20">
                             <button :class="{ active: section.selectedGrowthType === 'constant' }"
-                                @click="changeGrowthType(index, 'constant')" class="growth-type-button">
+                                @click="changeGrowthType(index, 'constant')" class="btn btn-secondary btn-radio">
                                 Constant
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'gradient' }"
@@ -283,7 +283,7 @@ export default {
                 years: [],
                 items: [],
             },
-            selectedFormat: 'USD',
+            selectedFormat: 'Units',
             expenseSections: [],
             forecastData: [],
             forecastItems: [],
@@ -350,7 +350,7 @@ export default {
             const savedSelections = sessionStorage.getItem('userSelections-operatingExpensesForecast');
             if (savedSelections) {
                 const parsedSelections = JSON.parse(savedSelections);
-                this.selectedFormat = parsedSelections.currency || 'USD';
+                this.selectedFormat = parsedSelections.currency || 'Units';
                 this.expenseSections.forEach((section) => {
                     const savedSection = parsedSelections.find((s) => s.name === section.name);
                     if (savedSection) {
@@ -396,7 +396,6 @@ export default {
 
                 return option;
             });
-
             sessionStorage.setItem('userSelections-operatingExpensesForecast', JSON.stringify(selectedOptions));
         },
         changeGrowthType(index, type) {
@@ -787,18 +786,24 @@ td {
 }
 
 button {
-    padding: 10px 20px;
-    border: none;
-    background-color: #004488;
-    color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 12px 24px;
+  border: none;
+  background-color: #0056b3;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+button:hover {
+  background-color: #004494;
+  transform: translateY(-1px);
 }
 
 button:disabled {
-    background-color: #a0a0a0;
-    cursor: not-allowed;
-    transform: none;
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .currency-selector {
@@ -807,24 +812,25 @@ button:disabled {
 }
 
 .growth-buttons button {
-    background-color: #e0e7ff;
-    border: none;
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 25px;
-    /* This makes the buttons rounded */
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  background-color: #f0f4ff;
+  border: 1px solid #d0d9ff;
+  color: #0056b3;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
 }
 
 .growth-buttons button.active {
-    background-color: #4a90e2;
-    color: #fff;
+  background-color: #0056b3;
+  border-color: #0056b3;
+  color: #fff;
 }
 
 .growth-buttons button:hover {
-    background-color: #4a90e2;
-    color: #fff;
+  background-color: #d0d9ff;
+  color: #0056b3;
 }
 
 .forecast-duration {
@@ -909,6 +915,9 @@ button:disabled {
     margin-bottom: 10px;
 }
 
+.growth-buttons button {
+  margin-right: 10px; /* Add spacing between buttons */
+}
 
 .stage-input label {
     margin-right: 5px;

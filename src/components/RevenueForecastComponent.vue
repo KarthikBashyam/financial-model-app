@@ -7,7 +7,7 @@
         <div class="relative">
           <select v-model="selectedFormat" id="currency"
             class="appearance-none bg-gray-100 border border-gray-300 rounded-md py-2 px-4 pr-8 leading-tight focus:outline-none focus:bg-white focus:border-blue-500">
-            <option value="USD">USD</option>
+            <option value="Units">Units</option>
             <option value="Millions">Millions</option>
             <option value="Billions">Billions</option>
           </select>
@@ -241,7 +241,7 @@ export default {
       isLoading: false,
       isOpen: false,
       selectedGrowthType: 'constant',
-      selectedFormat: 'USD',
+      selectedFormat: 'Units',
       forecastDuration: savedForecastDuration ? JSON.parse(savedForecastDuration) : 0, // Use sessionStorage value or fallback to 3
       growthType: 'constant',
       inputGrowthRate: null,
@@ -285,7 +285,7 @@ export default {
         const parsedSelections = JSON.parse(savedSelections);
         this.selectedGrowthType = parsedSelections.growthType || 'staged';
         this.forecastDuration = parsedSelections.forecastDuration || 1;
-        this.selectedFormat = parsedSelections.currency || 'USD';
+        this.selectedFormat = parsedSelections.currency || 'Units';
 
         if (this.selectedGrowthType === 'gradient') {
           this.gradientStart = parsedSelections.gradientStart || null;
