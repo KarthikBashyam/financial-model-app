@@ -46,7 +46,7 @@ export default {
   data() {
     return {
       navigationLinks: [
-        { to: "/forecast-home/revenue-forecast", text: "Revenue Forecasting" },
+        { to: "/forecast-home/revenue-forecast", text: "Revenue" },
         { to: "/forecast-home/growth-margin-forecast", text: "Gross Margin" },
         { to: "/forecast-home/operating-expenses-forecast", text: "Operating Expenses" },
         { to: "/forecast-home/capital-spending-forecast", text: "Capital Spending" },

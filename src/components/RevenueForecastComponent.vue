@@ -187,7 +187,7 @@
       <p>Loading...</p>
     </div>
     <!-- Preview Section -->
-    <div class="table-container" v-if="this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
+    <div class="table-container" v-if="shouldShowPreview && this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
       <div class="forecast-preview">
         <h4>Preview the Revenue Growth Forecast</h4>
         <div class="revenue-table-container">
@@ -227,12 +227,13 @@ export default {
     this.companyId = sessionStorage.getItem('companyId');
     this.fetchHistoricalData();
     this.loadUserSelections();
-    this.showPreview();
+    //this.showPreview();
+    this.checkPreviewStatus();
   },
   data() {
     const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
     return {
-
+      shouldShowPreview: false,
       nextYear: null,
       forecastedData: [],
       stagesOptions: [1, 2, 3, 4, 5],
@@ -269,16 +270,21 @@ export default {
   },
   beforeRouteEnter(to, from, next) {
     next(vm => {
-      // This runs after the route change, and the component is created
-      if (from.name === 'GrowthMarginForecast') { // Adjust 'NextPageComponent' to the actual next page's name
-        //vm.companyId = vm.getCompanyIdFromSession(); // Load the company ID
-
-        // Call the API to fetch forecast data when the user navigates back
+      const showPreview = sessionStorage.getItem(`showPreview_${to.name}`);
+      if (showPreview === 'true') {
+        vm.shouldShowPreview = true;
         vm.showPreview();
       }
     });
   },
   methods: {
+    checkPreviewStatus() {
+      const showPreview = sessionStorage.getItem(this.storageKey);
+      this.shouldShowPreview = showPreview === 'true';
+      if (this.shouldShowPreview) {
+        this.showPreview();
+      }
+    },
     loadUserSelections() {
       const savedSelections = sessionStorage.getItem('userSelections-revenueForecast');
       if (savedSelections) {
@@ -401,7 +407,9 @@ export default {
         })
           .then(response => {
             if (response.ok) {
-              this.showPreview()
+              sessionStorage.setItem(this.storageKey, 'true');
+              this.shouldShowPreview = true;
+              this.showPreview();
               // Parse the forecasted data from the response
             } else {
               console.error('Error saving forecast data:', response.statusText);
@@ -519,6 +527,10 @@ export default {
     isSingleYearForecast() {
       return this.forecastDuration == 1;
     },
+    storageKey() {
+      return `showPreview_${this.$route.name}`;
+    },
+  
     endYear() {
       return this.gradientStartYear + this.forecastDuration;
     },
@@ -526,7 +538,7 @@ export default {
       if (this.selectedGrowthType === 'gradient') {
         return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
       } else if (this.selectedGrowthType === 'constant') {
-        return this.inputGrowthRate > 0 && this.forecastDuration > 0;
+        return this.inputGrowthRate !== null && this.forecastDuration > 0;
       } else if (this.selectedGrowthType === 'staged') {
         return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds;
       }

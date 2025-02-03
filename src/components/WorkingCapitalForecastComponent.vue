@@ -54,11 +54,13 @@
                                 Constant
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'gradient' }"
-                                @click="changeGrowthType(index, 'gradient')" class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">
+                                @click="changeGrowthType(index, 'gradient')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">
                                 Gradient
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'staged' }"
-                                @click="changeGrowthType(index, 'staged')" class="btn btn-secondary btn-radio" :disabled="isSingleYearForecast">
+                                @click="changeGrowthType(index, 'staged')" class="btn btn-secondary btn-radio"
+                                :disabled="isSingleYearForecast">
                                 Staged
                             </button>
                             <button :class="{ active: section.selectedGrowthType === 'matchrevenuegrowth' }"
@@ -210,7 +212,7 @@
                     </div>
                 </div>
 
-                <button class="submit-button"  @click="submitInputs">Submit
+                <button class="submit-button" @click="submitInputs">Submit
                     Inputs</button>
             </div>
         </div>
@@ -221,7 +223,7 @@
             <p>Loading...</p>
         </div>
         <!-- Preview section-->
-        <div class="table-container" v-if="forecastItems && forecastItems.length > 0">
+        <div class="table-container" v-if="shouldShowPreview && forecastItems && forecastItems.length > 0">
             <div class="forecast-preview">
                 <h4>Preview of Working Capital Growth Forecast</h4>
                 <div class="revenue-table-container">
@@ -268,13 +270,15 @@ export default {
         this.fetchHistoricalData().then(() => {
             this.initializeExpenseSections();
         });
-        this.showPreview()
+        //this.showPreview()
         this.loadUserSelections();
+        this.checkPreviewStatus();
     },
 
     data() {
         const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
         return {
+            shouldShowPreview: false,
             nextYear: null,
             selectedFormat: 'USD',
             historicalData: {
@@ -291,7 +295,20 @@ export default {
             anySectionExceedsMaxLimit: false,
         };
     },
+    beforeRouteEnter(to, from, next) {
+        next(vm => {
+            // This runs after the route change, and the component is created
+            const showPreview = sessionStorage.getItem(`showPreview_${to.name}`);
+            if (showPreview === 'true') {
+                vm.shouldShowPreview = true;
+                vm.showPreview();
+            }
+        });
+    },
     computed: {
+        storageKey() {
+            return `showPreview_${this.$route.name}`;
+        },
         isSingleYearForecast() {
             return this.forecastDuration == 1;
         },
@@ -299,12 +316,12 @@ export default {
             // Validate all expense sections
             return this.expenseSections.every(section => {
                 if (section.selectedGrowthType === 'constant') {
-                    return section.inputGrowthRate > 0;
+                    return section.inputGrowthRate !== null;
                 } else if (section.selectedGrowthType === 'gradient') {
-                    return section.gradientStart > 0 && section.gradientEnd > 0;
+                    return section.gradientStart !== null && section.gradientEnd !== null;
                 } else if (section.selectedGrowthType === 'staged') {
-                    return section.stages.every(stage => stage.rate > 0 && stage.duration > 0);
-                }  else if (this.selectedGrowthType === 'matchrevenuegrowth') {
+                    return section.stages.every(stage => stage.rate !== null && stage.duration !== null);
+                } else if (section.selectedGrowthType === 'matchrevenuegrowth') {
                     return this.forecastDuration > 0; // Example validation
                 }
                 return true; // Default to valid for other types
@@ -321,6 +338,13 @@ export default {
     }
     ,
     methods: {
+        checkPreviewStatus() {
+            const showPreview = sessionStorage.getItem(this.storageKey);
+            this.shouldShowPreview = showPreview === 'true';
+            if (this.shouldShowPreview) {
+                this.showPreview();
+            }
+        },
         setForecastMode(sectionIndex, mode) {
             this.expenseSections[sectionIndex].forecastMode = mode;
         },
@@ -648,6 +672,8 @@ export default {
 
                 // Store the forecasted data for preview
                 //this.forecastData = forecastData;
+                sessionStorage.setItem(this.storageKey, 'true');
+                this.shouldShowPreview = true;
                 this.showPreview();
             } catch (error) {
                 console.error('Error in submitInputs:', error);
@@ -696,6 +722,10 @@ export default {
                         item.annualValues.find((av) => av.year === year)?.value || 0
                     ),
                 }));
+
+                this.forecastItems = this.historicalData.items
+                    .map((historicalItem) => this.forecastItems.find((forecastItem) => forecastItem.lineItemId === historicalItem.lineItemId))
+                    .filter(Boolean); // Removes undefined values
 
                 console.log('Mapped Forecast Items:', this.forecastItems);
             } catch (error) {
@@ -784,23 +814,24 @@ td {
 }
 
 button {
-  padding: 12px 24px;
-  border: none;
-  background-color: #0056b3;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.1s ease;
+    padding: 12px 24px;
+    border: none;
+    background-color: #0056b3;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
 }
+
 button:hover {
-  background-color: #004494;
-  transform: translateY(-1px);
+    background-color: #004494;
+    transform: translateY(-1px);
 }
 
 button:disabled {
-  background-color: #a0a0a0;
-  cursor: not-allowed;
-  transform: none;
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+    transform: none;
 }
 
 
@@ -810,25 +841,25 @@ button:disabled {
 }
 
 .growth-buttons button {
-  background-color: #f0f4ff;
-  border: 1px solid #d0d9ff;
-  color: #0056b3;
-  padding: 10px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+    background-color: #f0f4ff;
+    border: 1px solid #d0d9ff;
+    color: #0056b3;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
 }
 
 .growth-buttons button.active {
-  background-color: #0056b3;
-  border-color: #0056b3;
-  color: #fff;
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: #fff;
 }
 
 .growth-buttons button:hover {
-  background-color: #d0d9ff;
-  color: #0056b3;
+    background-color: #d0d9ff;
+    color: #0056b3;
 }
 
 
@@ -1115,7 +1146,8 @@ button:disabled {
 }
 
 .growth-buttons button {
-  margin-right: 10px; /* Add spacing between buttons */
+    margin-right: 10px;
+    /* Add spacing between buttons */
 }
 
 .error-message {

@@ -63,13 +63,13 @@ const routes = [
         props: true
       },
       {
-        path: 'valuation-page',
+        path: 'valuation',
         name : 'ValuationPage',
         component: ValuationComponent,
         props: true
       },
       {
-        path: 'intrinsic-page',
+        path: 'intrinsic-summary',
         name : 'IntrinsicValueForecast',
         component: IntrinsicValueComponent,
         props: true

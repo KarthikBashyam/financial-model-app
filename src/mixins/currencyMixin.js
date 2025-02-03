@@ -10,7 +10,7 @@ export const currencyMixin = {
         case 'Millions':
           return `${(value / 1e6).toFixed(2)}M`;
         case 'Billions':
-          return `${(value / 1e9).toFixed(2)}B`;
+          return `${(value / 1e9).toFixed(3)}B`;
         default:
           return this.formatCurrency(value);
       }

@@ -54,30 +54,30 @@
               <tbody>
                 <tr>
                   <td>EBIT*(1-T)</td>
-                  <td v-for="year in forecastYears" :key="'ebit-' + year">{{ formatValue(forecastedEBITCosts[year]) }}
+                  <td v-for="year in forecastYears" :key="'ebit-' + year">{{ formatCurrency(forecastedEBITCosts[year]) }}
                   </td>
                 </tr>
                 <tr>
                   <td>D&A</td>
-                  <td v-for="year in forecastYears" :key="'da-' + year">{{ formatValue(forecastedDARates[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'da-' + year">{{ formatCurrency(forecastedDARates[year]) }}</td>
                 </tr>
                 <tr>
                   <td>Capital Expenditure</td>
-                  <td v-for="year in forecastYears" :key="'capex-' + year">{{ formatValue(capExCosts[year]) }}</td>
+                  <td v-for="year in forecastYears" :key="'capex-' + year">{{ formatCurrency(capExCosts[year]) }}</td>
                 </tr>
                 <tr>
                   <td>Net Change in Working Capital</td>
-                  <td v-for="year in forecastYears" :key="'nwc-' + year">{{ formatValue(forecastedNWCCosts[year]) }}
+                  <td v-for="year in forecastYears" :key="'nwc-' + year">{{ formatCurrency(forecastedNWCCosts[year]) }}
                   </td>
                 </tr>
                 <tr>
                   <td>FCFF</td>
-                  <td v-for="year in forecastYears" :key="'fcff-' + year">{{ formatValue(forecastedFCFFCosts[year]) }}
+                  <td v-for="year in forecastYears" :key="'fcff-' + year">{{ formatCurrency(forecastedFCFFCosts[year]) }}
                   </td>
                 </tr>
                 <tr>
                   <td>PV of FCFF</td>
-                  <td v-for="year in forecastYears" :key="'pvfcff-' + year">{{ formatValue(presentValueOfFCFFMap[year])
+                  <td v-for="year in forecastYears" :key="'pvfcff-' + year">{{ formatCurrency(presentValueOfFCFFMap[year])
                     }}</td>
                 </tr>
               </tbody>
@@ -117,10 +117,11 @@
 import { ref } from 'vue';
 import { currencyMixin } from '@/mixins/currencyMixin';
 
+
 export default {
+  mixins: [currencyMixin],
   data() {
-    return {
-      mixins: [currencyMixin],
+    return {      
       selectedFormat: 'USD',
       intrinsicValue: '',
       loading: true,
@@ -249,16 +250,7 @@ export default {
       const allYears = new Set();
       Object.keys(data || {}).forEach(year => allYears.add(year));
       return Array.from(allYears).sort();
-    },
-    formatCurrency(value) {
-      if (value === null || value === undefined) return 'N/A';
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(value);
-    }
+    },    
   }
 };
 </script>

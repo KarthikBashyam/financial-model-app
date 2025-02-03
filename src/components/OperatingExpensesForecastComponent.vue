@@ -213,7 +213,7 @@
                     </div>
                 </div>
 
-                <button class="submit-button"  @click="submitInputs">Submit
+                <button class="submit-button" @click="submitInputs">Submit
                     Inputs</button>
             </div>
         </div>
@@ -224,7 +224,7 @@
             <p>Loading...</p>
         </div>
         <!-- Preview section-->
-        <div class="table-container" v-if="forecastItems && forecastItems.length > 0">
+        <div class="table-container" v-if="shouldShowPreview && forecastItems && forecastItems.length > 0">
             <div class="forecast-preview">
                 <h4>Preview of Operating Expenses Growth Forecast</h4>
                 <div class="revenue-table-container">
@@ -271,14 +271,16 @@ export default {
         this.fetchHistoricalData().then(() => {
             this.initializeExpenseSections();
         });
-        this.showPreview()
+        //this.showPreview()
         this.loadUserSelections();
+        this.checkPreviewStatus();
     },
 
     data() {
         const savedForecastDuration = sessionStorage.getItem('userSelections-foreCastDuration');
         return {
             nextYear: null,
+            shouldShowPreview: false,
             historicalData: {
                 years: [],
                 items: [],
@@ -294,19 +296,31 @@ export default {
             anySectionExceedsMaxLimit: false,
         };
     },
+    beforeRouteEnter(to, from, next) {
+        next(vm => {
+            const showPreview = sessionStorage.getItem(`showPreview_${to.name}`);
+            if (showPreview === 'true') {
+                vm.shouldShowPreview = true;
+                vm.showPreview();
+            }
+        });
+    },
     computed: {
         isSingleYearForecast() {
             return this.forecastDuration == 1;
+        },
+        storageKey() {
+            return `showPreview_${this.$route.name}`;
         },
         isInputsValid() {
             // Validate all expense sections
             return this.expenseSections.every(section => {
                 if (section.selectedGrowthType === 'constant') {
-                    return section.inputGrowthRate > 0;
+                    return section.inputGrowthRate !== null;
                 } else if (section.selectedGrowthType === 'gradient') {
-                    return section.gradientStart > 0 && section.gradientEnd > 0;
+                    return section.gradientStart !== null && section.gradientEnd !== null;
                 } else if (section.selectedGrowthType === 'staged') {
-                    return section.stages.every(stage => stage.rate > 0 && stage.duration > 0);
+                    return section.stages.every(stage => stage.rate !== null && stage.duration !== null);
                 }
                 return true; // Default to valid for other types
             });
@@ -322,6 +336,13 @@ export default {
     }
     ,
     methods: {
+        checkPreviewStatus() {
+            const showPreview = sessionStorage.getItem(this.storageKey);
+            this.shouldShowPreview = showPreview === 'true';
+            if (this.shouldShowPreview) {
+                this.showPreview();
+            }
+        },
         setForecastMode(sectionIndex, mode) {
             this.expenseSections[sectionIndex].forecastMode = mode;
         },
@@ -605,7 +626,7 @@ export default {
                         forecastItems.push({
                             lineItemId: growthItem.lineItemId,
                             internalAlias: growthItem.internalAlias,
-                             unitType: growthItem.unitType,
+                            unitType: growthItem.unitType,
                             historicalValues: [mostRecentGrowthValue], // Include only the most recent year's value
                         });
                     }
@@ -650,6 +671,8 @@ export default {
 
                 // Store the forecasted data for preview
                 //this.forecastData = forecastData;
+                sessionStorage.setItem(this.storageKey, 'true');
+                this.shouldShowPreview = true;
                 this.showPreview();
             } catch (error) {
                 console.error('Error in submitInputs:', error);
@@ -698,6 +721,10 @@ export default {
                         item.annualValues.find((av) => av.year === year)?.value || 0
                     ),
                 }));
+
+                this.forecastItems = this.historicalData.items
+                    .map((historicalItem) => this.forecastItems.find((forecastItem) => forecastItem.lineItemId === historicalItem.lineItemId))
+                    .filter(Boolean); // Removes undefined values
 
                 console.log('Mapped Forecast Items:', this.forecastItems);
             } catch (error) {
@@ -786,24 +813,24 @@ td {
 }
 
 button {
-  padding: 12px 24px;
-  border: none;
-  background-color: #0056b3;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.1s ease;
+    padding: 12px 24px;
+    border: none;
+    background-color: #0056b3;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
 }
 
 button:hover {
-  background-color: #004494;
-  transform: translateY(-1px);
+    background-color: #004494;
+    transform: translateY(-1px);
 }
 
 button:disabled {
-  background-color: #a0a0a0;
-  cursor: not-allowed;
-  transform: none;
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .currency-selector {
@@ -812,25 +839,25 @@ button:disabled {
 }
 
 .growth-buttons button {
-  background-color: #f0f4ff;
-  border: 1px solid #d0d9ff;
-  color: #0056b3;
-  padding: 10px 20px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+    background-color: #f0f4ff;
+    border: 1px solid #d0d9ff;
+    color: #0056b3;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
 }
 
 .growth-buttons button.active {
-  background-color: #0056b3;
-  border-color: #0056b3;
-  color: #fff;
+    background-color: #0056b3;
+    border-color: #0056b3;
+    color: #fff;
 }
 
 .growth-buttons button:hover {
-  background-color: #d0d9ff;
-  color: #0056b3;
+    background-color: #d0d9ff;
+    color: #0056b3;
 }
 
 .forecast-duration {
@@ -916,7 +943,8 @@ button:disabled {
 }
 
 .growth-buttons button {
-  margin-right: 10px; /* Add spacing between buttons */
+    margin-right: 10px;
+    /* Add spacing between buttons */
 }
 
 .stage-input label {
