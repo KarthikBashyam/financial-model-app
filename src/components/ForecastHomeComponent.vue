@@ -13,9 +13,9 @@
           class="link"
           :class="{
             'completed': isCompleted(index),
-            'active': isActive(link.to),
-            'disabled': isDisabled(index)
+            'active': isActive(link.to)
           }"
+          @click="navigateTo(link.to)"
         >
           <div class="link-content">
             <div class="step-indicator">
@@ -64,8 +64,8 @@ export default {
     isActive(route) {
       return this.$route.path.includes(route);
     },
-    isDisabled(index) {
-      return index > this.currentStep;
+    navigateTo(route) {
+      this.$router.push(route);
     },
     updateCurrentStep() {
       const currentRouteIndex = this.navigationLinks.findIndex(link => this.$route.path.includes(link.to));
@@ -164,6 +164,7 @@ export default {
   transition: all 0.3s ease;
   position: relative;
   z-index: 2;
+  cursor: pointer;
 }
 
 .link.active {

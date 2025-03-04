@@ -523,8 +523,17 @@ export default {
                 order.forEach(({ id, growthId }) => {
                     const mainItem = data.find(item => item.lineItemId === id);
                     const growthItem = data.find(item => item.lineItemId === growthId);
-                    if (mainItem) sortedData.push(mainItem);
-                    if (growthItem) sortedData.push(growthItem);
+
+                    const mostRecentYear = Math.max(...years);
+                    const mainItemMostRecentValue = mainItem?.annualValues.find(av => av.year === mostRecentYear)?.value || 0;
+
+                    if (mainItemMostRecentValue !== 0) {
+                        if (mainItem) sortedData.push(mainItem);
+                        if (growthItem) sortedData.push(growthItem);
+                    }
+
+                    //if (mainItem) sortedData.push(mainItem);
+                    //if (growthItem) sortedData.push(growthItem);
                 });
                 this.nextYear = years[years.length - 1] + 1;
 

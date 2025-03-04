@@ -26,12 +26,7 @@
               <span class="text-muted me-2">FY END</span>
               <span class="fw-bold"></span>
             </div>
-            <div>
-              <span class="text-muted me-2">Sort</span>
-              <i class="bi bi-arrow-down-up"></i>
-              <span class="text-muted mx-2">Filter</span>
-              <i class="bi bi-funnel"></i>
-            </div>
+            
             <div>
               <span class="text-muted me-2">CURRENCY: USD</span>
               <select v-model="selectedFormat" class="form-select form-select-sm d-inline-block w-auto">   
