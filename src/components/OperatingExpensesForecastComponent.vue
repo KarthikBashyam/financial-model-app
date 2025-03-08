@@ -205,8 +205,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div v-if="section.totalDurationExceeds" class="error-message">Exceeds max limit</div>
-
+                                <div v-if="showErrorMessages && section.totalDurationExceeds" class="error-message">
+                                    Total duration exceeds the forecast duration.</div>
+                                <div v-if="showErrorMessages && section.totalDurationLess" class="error-message">Total
+                                    duration is less than the forecast duration.</div>
                             </div>
                         </div>
 
@@ -257,7 +259,7 @@
 
         <div class="actions">
             <button @click="goBack">Back</button>
-            <button @click="goForward">Continue</button>
+            <button @click="goForward" :disabled="!isInputsValid">Continue</button>
         </div>
     </div>
 </template>
@@ -294,6 +296,7 @@ export default {
             isLoading: false,
             companyId: sessionStorage.getItem('companyId'),
             anySectionExceedsMaxLimit: false,
+            showErrorMessages: false,
         };
     },
     beforeRouteEnter(to, from, next) {
@@ -355,10 +358,12 @@ export default {
                 stage.exceedsMaxLimit = totalDuration > this.forecastDuration;
             });
             section.totalDurationExceeds = section.stages.some(stage => stage.exceedsMaxLimit);
-            this.anySectionExceedsMaxLimit = this.expenseSections.some(section => section.totalDurationExceeds);
+            section.totalDurationLess = totalDuration < this.forecastDuration;
+            this.anySectionExceedsMaxLimit = this.expenseSections.some(section => section.totalDurationExceeds || section.totalDurationLess);
         },
         updateStages(sectionIndex) {
             const section = this.expenseSections[sectionIndex];
+            this.showErrorMessages = false;
             if (section.numStages && section.numStages > 0) {
                 // Populate the stages array based on the selected number of stages
                 section.stages = Array.from({ length: section.numStages }, () => ({ rate: 0, duration: 0 }));
@@ -590,6 +595,13 @@ export default {
         ,
         async submitInputs() {
             try {
+                this.showErrorMessages = true; // Add this line
+                this.expenseSections.forEach((section, index) => {
+                    this.validateTotalDuration(index);
+                });
+                if (this.anySectionExceedsMaxLimit) {
+                    return;
+                }
                 this.isLoading = true;
                 this.saveUserSelections();
                 // Create forecast requests for each expense section

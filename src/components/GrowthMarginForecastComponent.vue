@@ -173,7 +173,10 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
+                <div v-if="this.showErrorMessages && this.totalDurationExceeds" class="error-message">Total duration
+                  exceeds the forecast duration.</div>
+                <div v-if="this.showErrorMessages && this.totalDurationLess" class="error-message">Total duration is
+                  less than the forecast duration.</div>
               </div>
             </div>
 
@@ -187,7 +190,8 @@
       <p>Loading...</p>
     </div>
     <!-- Preview Section -->
-    <div class="table-container" v-if="shouldShowPreview && this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
+    <div class="table-container"
+      v-if="shouldShowPreview && this.forecastItems && this.forecastItems.length > 0 && !this.isLoading">
       <div class="forecast-preview">
         <h4>Preview the Revenue Growth Forecast</h4>
         <div class="revenue-table-container">
@@ -265,7 +269,10 @@ export default {
         { rate: null, duration: null },
         { rate: null, duration: null }
       ],
-      totalDurationExceeds: false
+      totalDurationExceeds: false,
+      totalDurationLess: false,
+      hasUserInteracted: false,
+      showErrorMessages: false,
 
     };
   },
@@ -373,6 +380,11 @@ export default {
 
     async submitInputs() {
       try {
+        this.showErrorMessages = true;
+        this.validateTotalDuration();
+        if (this.totalDurationExceeds || this.totalDurationLess) {
+          return;
+        }
         // Prepare the forecast request
         this.isLoading = true;
         this.forecastedData = [];
@@ -499,11 +511,22 @@ export default {
       this.growthType = type;
     },
     updateStages(numStages) {
-      this.stages = Array.from({ length: numStages }, () => ({ rate: '', duration: '' }));
+      this.hasUserInteracted = false;
+      this.showErrorMessages = false;
+      if (this.numStages && numStages > 0) {
+        // Populate the stages array based on the selected number of stages
+        this.stages = Array.from({ length: numStages }, () => ({ rate: 0, duration: 0 }));
+      } else {
+        // Clear stages if no valid selection is made
+        this.stages = [];
+      }
     },
     validateTotalDuration() {
       const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
+      this.isDurationSelected = this.stages.every(stage => stage.duration !== null && stage.duration !== '');
       this.totalDurationExceeds = totalDuration > this.forecastDuration;
+      this.totalDurationLess = this.isDurationSelected  && totalDuration < this.forecastDuration;
+      this.hasUserInteracted = true;
     },
     goBack() {
       this.$router.go(-1);
@@ -545,7 +568,8 @@ export default {
       } else if (this.selectedGrowthType === 'constant') {
         return this.inputGrowthRate !== null && this.forecastDuration > 0;
       } else if (this.selectedGrowthType === 'staged') {
-        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0;
+        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds 
+        && !this.totalDurationLess;
       }
       return false;
     },
@@ -636,6 +660,7 @@ button {
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.1s ease;
 }
+
 button:hover {
   background-color: #004494;
   transform: translateY(-1px);

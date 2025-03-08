@@ -174,7 +174,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div v-if="totalDurationExceeds" class="error-message">Exceeds max limit</div>
+                                <div v-if="this.showErrorMessages && this.totalDurationExceeds" class="error-message">
+                                    Total duration exceeds the forecast duration.</div>
+                                <div v-if="this.showErrorMessages && this.totalDurationLess" class="error-message">Total
+                                    duration is less than the forecast duration.</div>
                             </div>
                         </div>
 
@@ -283,7 +286,11 @@ export default {
                 years: [2024, 2025, 2026],
                 revenues: [14.1, 16.5, 17.32],
                 growthRates: [7, 4.3, 3],
-            }
+            },
+            totalDurationExceeds: false,
+            totalDurationLess: false,
+            hasUserInteracted: false,
+            showErrorMessages: false,
         };
     },
     beforeRouteEnter(to, from, next) {
@@ -306,7 +313,10 @@ export default {
         },
         validateTotalDuration() {
             const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
-            this.totalDurationExceeds = totalDuration > this.forecastDuration;
+            this.isDurationSelected = this.stages.every(stage => stage.duration !== null && stage.duration !== '');
+            this.totalDurationExceeds = this.isDurationSelected  && totalDuration > this.forecastDuration;
+            this.totalDurationLess = this.isDurationSelected  && totalDuration < this.forecastDuration;
+            this.hasUserInteracted = true;
         },
         formatValueByType(value, type) {
             if (type === 'PERCENTAGES') {
@@ -429,6 +439,11 @@ export default {
 
         async submitInputs() {
             try {
+                this.showErrorMessages = true;
+                this.validateTotalDuration();
+                if (this.totalDurationExceeds || this.totalDurationLess) {
+                    return;
+                }
                 // Prepare the forecast request
                 this.isLoading = true;
                 this.saveUserSelections();
@@ -579,7 +594,8 @@ export default {
             } else if (this.selectedGrowthType === 'gradient') {
                 return this.gradientStart !== null && this.gradientEnd !== null && this.forecastDuration > 0;
             } else if (this.selectedGrowthType === 'staged') {
-                return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0;
+                return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds 
+                && !this.totalDurationLess;
             } else if (this.selectedGrowthType === 'matchrevenuegrowth') {
                 return this.forecastDuration > 0; // Example validation
             }

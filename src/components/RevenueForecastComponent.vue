@@ -174,7 +174,8 @@
                   </div>
                 </div>
               </div>
-              <div v-if="totalDurationExceeds" class="error-message">Exceeds Max limit</div>
+              <div v-if="this.showErrorMessages && this.totalDurationExceeds" class="error-message">Total duration exceeds the forecast duration.</div>
+              <div v-if="this.showErrorMessages && this.totalDurationLess" class="error-message">Total duration is less than the forecast duration.</div>
             </div>
 
           </div>
@@ -264,8 +265,10 @@ export default {
         { rate: null, duration: null },
         { rate: null, duration: null }
       ],
-      totalDurationExceeds: false,
-
+      totalDurationExceeds: false,      
+      totalDurationLess: false,
+      hasUserInteracted: false,
+      showErrorMessages: false,
     };
   },
   beforeRouteEnter(to, from, next) {
@@ -368,7 +371,11 @@ export default {
 
     async submitInputs() {
       try {
-        // Prepare the forecast request
+      this.showErrorMessages = true;
+      this.validateTotalDuration();
+      if (this.totalDurationExceeds || this.totalDurationLess) {
+        return;
+      }
         this.isLoading = true;
         this.forecastedData = [];
         // Prepare forecast request
@@ -478,6 +485,8 @@ export default {
       this.growthType = type;
     },
     updateStages() {
+      this.hasUserInteracted = false;
+      this.showErrorMessages = false;
       // Adjust the stages array to match the number of stages input by the user
       if (this.numStages && this.numStages > 0) {
         // Populate the stages array based on the selected number of stages
@@ -512,7 +521,10 @@ export default {
     },
     validateTotalDuration() {
       const totalDuration = this.stages.reduce((sum, stage) => sum + parseInt(stage.duration || 0), 0);
-      this.totalDurationExceeds = totalDuration > this.forecastDuration;
+      this.isDurationSelected = this.stages.every(stage => stage.duration !== null && stage.duration !== '');
+      this.totalDurationExceeds = this.isDurationSelected  && totalDuration > this.forecastDuration;
+      this.totalDurationLess = this.isDurationSelected  && totalDuration < this.forecastDuration;
+      this.hasUserInteracted = true;
     }
   },
   watch: {
@@ -540,7 +552,8 @@ export default {
       } else if (this.selectedGrowthType === 'constant') {
         return this.inputGrowthRate !== null && this.forecastDuration > 0;
       } else if (this.selectedGrowthType === 'staged') {
-        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds;
+        return this.numStages > 0 && this.stages.every(stage => stage.rate !== null && stage.duration !== null) && this.forecastDuration > 0 && !this.totalDurationExceeds 
+        && !this.totalDurationLess;
       }
       return false;
     },
