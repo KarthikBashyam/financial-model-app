@@ -51,7 +51,7 @@ export default {
         { to: "/forecast-home/operating-expenses-forecast", text: "Operating Expenses" },
         { to: "/forecast-home/capital-spending-forecast", text: "Capital Spending" },
         { to: "/forecast-home/working-capital-forecast", text: "Working Capital" },
-        { to: "/forecast-home/valuation-page", text: "Valuation" }
+        { to: "/forecast-home/valuation", text: "Valuation" }
       ],
       completedSteps: 0,
       currentStep: 0
