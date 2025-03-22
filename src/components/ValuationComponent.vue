@@ -143,20 +143,56 @@ export default {
                 // Get the latest year
                 const latestYear = Math.max(...this.forecastYears);
 
+                const operatingExpensesItems = this.forecastedData.filter(item => [8, 9, 13].includes(item.lineItemId));
+                const otherItems = this.forecastedData.filter(item => ![8, 9, 13].includes(item.lineItemId));
 
-                this.forecastItems = this.forecastedData.map(item => ({
+
+                const mergedOperatingExpenses = {
+                lineItemId: 'OperatingExpenses',
+                lineItemName: 'Operating Expenses',
+                unitType: 'DOLLARS',
+                values: this.forecastYears.map(year => {
+                    return operatingExpensesItems.reduce((sum, item) => {
+                        const value = item.annualValues.find(av => av.year === year)?.value || 0;
+                        return sum + value;
+                    }, 0);
+                }),
+            };
+
+            const grossProfitItem = this.forecastedData.find(item => item.lineItemId === 1);
+
+            // Calculate Operating Profit
+            const operatingProfit = {
+                lineItemId: 'OperatingProfit',
+                lineItemName: 'Operating Profit',
+                unitType: 'DOLLARS',
+                values: this.forecastYears.map((year, index) => {
+                const grossProfitValue = grossProfitItem?.annualValues.find(av => av.year === year)?.value || 0;
+                const operatingExpensesValue = mergedOperatingExpenses.values[index] || 0;
+                return grossProfitValue - operatingExpensesValue;
+                }),
+            };
+
+
+            // Combine the merged item with other items
+            this.forecastItems = [
+                ...otherItems.map(item => ({
                     lineItemId: item.lineItemId,
                     lineItemName: item.lineItemName,
                     unitType: item.unitType,
                     values: this.forecastYears.map(year =>
                         item.annualValues.find(av => av.year === year)?.value || 0
                     ),
-                }))
-                .filter(item => {
-                    // Filter out items where the latest year's value is 0
-                    const latestYearValue = item.values[this.forecastYears.indexOf(latestYear)];
-                    return latestYearValue !== 0;
-                });
+                })),
+                mergedOperatingExpenses,
+                operatingProfit
+            ]
+            .filter(item => {
+                // Filter out items where the latest year's value is 0
+                const latestYearValue = item.values[this.forecastYears.indexOf(latestYear)];
+                return latestYearValue !== 0;
+            })
+            .sort((a, b) => a.lineItemId - b.lineItemId);
 
             } catch (error) {
                 console.error('Error in showPreview:', error);

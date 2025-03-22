@@ -355,14 +355,19 @@ export default {
         validateTotalDuration(sectionIndex) {
             const section = this.expenseSections[sectionIndex];
             let totalDuration = 0;
-            section.stages.forEach(stage => {
-                const duration = parseInt(stage.duration || 0);
-                totalDuration += duration;
-                stage.exceedsMaxLimit = totalDuration > this.forecastDuration;
-            });
-            section.totalDurationExceeds = section.stages.some(stage => stage.exceedsMaxLimit);
-            section.totalDurationLess = totalDuration < this.forecastDuration;
-            this.anySectionExceedsMaxLimit = this.expenseSections.some(section => section.totalDurationExceeds || section.totalDurationLess);
+            if (section.selectedGrowthType == 'staged') {
+                section.stages.forEach(stage => {
+                    const duration = parseInt(stage.duration || 0);
+                    totalDuration += duration;
+                    stage.exceedsMaxLimit = totalDuration > this.forecastDuration;
+                });
+                section.totalDurationExceeds = section.stages.some(stage => stage.exceedsMaxLimit);
+                section.totalDurationLess = totalDuration < this.forecastDuration;
+                this.anySectionExceedsMaxLimit = this.expenseSections.some(section => section.totalDurationExceeds || section.totalDurationLess);
+            } else {
+                section.totalDurationExceeds = false;
+                section.totalDurationLess = false;
+            }
         },
         updateStages(sectionIndex) {
             const section = this.expenseSections[sectionIndex];
@@ -436,10 +441,12 @@ export default {
                 this.expenseSections[index].gradientStart = 0;
                 this.expenseSections[index].gradientEnd = 0;
                 this.expenseSections[index].stages = []; // Clear stages if switching back to constant
+                this.anySectionExceedsMaxLimit = false; // Reset forecast mode
             } else if (type === 'gradient') {
                 // Reset constant and staged growth properties
                 this.expenseSections[index].inputGrowthRate = 0;
                 this.expenseSections[index].stages = []; // Clear stages if switching to gradient
+                this.anySectionExceedsMaxLimit = false; // Reset forecast mode
             } else if (type === 'staged') {
                 // Reset constant and gradient growth properties
                 this.expenseSections[index].inputGrowthRate = 0;
